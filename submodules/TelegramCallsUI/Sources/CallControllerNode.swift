@@ -790,6 +790,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             self.peer = peer
             if let peerReference = PeerReference(peer), !peer.profileImageRepresentations.isEmpty {
                 let representations: [ImageRepresentationWithReference] = peer.profileImageRepresentations.map({ ImageRepresentationWithReference(representation: $0, reference: .avatar(peer: peerReference, resource: $0.resource)) })
+                // INFO: Здесь сетается аватарка пользователя на бекграунд
                 self.imageNode.setSignal(chatAvatarGalleryPhoto(account: self.account, representations: representations, immediateThumbnailData: nil, autoFetchFullSize: true))
                 self.dimNode.isHidden = false
             } else {
@@ -798,6 +799,8 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             }
             
             self.toastNode.title = EnginePeer(peer).compactDisplayTitle
+            
+            // INFO: Здесь сетается имя пользователя, который звонит
             self.statusNode.title = EnginePeer(peer).displayTitle(strings: self.presentationData.strings, displayOrder: self.presentationData.nameDisplayOrder)
             if hasOther {
                 self.statusNode.subtitle = self.presentationData.strings.Call_AnsweringWithAccount(EnginePeer(accountPeer).displayTitle(strings: self.presentationData.strings, displayOrder: self.presentationData.nameDisplayOrder)).string
@@ -1573,6 +1576,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             keyPreviewNode.updateLayout(size: layout.size, transition: .immediate)
         }
         
+        // INFO: тут можно поменять фрейм бекграунд картинки, анимированно
         transition.updateFrame(node: self.imageNode, frame: containerFullScreenFrame)
         let arguments = TransformImageArguments(corners: ImageCorners(), imageSize: CGSize(width: 640.0, height: 640.0).aspectFilled(layout.size), boundingSize: layout.size, intrinsicInsets: UIEdgeInsets())
         let apply = self.imageNode.asyncLayout()(arguments)

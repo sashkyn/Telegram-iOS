@@ -43,6 +43,7 @@ public struct CallAuxiliaryServer {
 }
 
 public struct PresentationCallState: Equatable {
+  // Опа, Стейт для звонка!
     public enum State: Equatable {
         case waiting
         case ringing
