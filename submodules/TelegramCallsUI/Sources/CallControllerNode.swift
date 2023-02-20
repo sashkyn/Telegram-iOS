@@ -370,7 +370,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     private let containerNode: ASDisplayNode
     private let videoContainerNode: PinchSourceContainerNode
     
-    private let imageNode: TransformImageNode
+    private let backgroundGradientNode: CallBackgroundNode
     private let dimNode: ASImageNode
     
     private var candidateIncomingVideoNodeValue: CallVideoNode?
@@ -482,9 +482,9 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         self.containerNode = ASDisplayNode()
         
         self.videoContainerNode = PinchSourceContainerNode()
+                
+        self.backgroundGradientNode = CallBackgroundNode(gradientState: .ringingOrCallEnded)
         
-        self.imageNode = TransformImageNode()
-        self.imageNode.contentAnimations = [.subsequentUpdates]
         self.dimNode = ASImageNode()
         self.dimNode.contentMode = .scaleToFill
         self.dimNode.isUserInteractionEnabled = false
@@ -529,8 +529,8 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 }
             }
         }
-        
-        self.containerNode.addSubnode(self.imageNode)
+
+        self.containerNode.addSubnode(self.backgroundGradientNode)
         self.containerNode.addSubnode(self.videoContainerNode)
         self.containerNode.addSubnode(self.dimNode)
         self.containerNode.addSubnode(self.statusNode)
@@ -789,12 +789,27 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         if !arePeersEqual(self.peer, peer) {
             self.peer = peer
             if let peerReference = PeerReference(peer), !peer.profileImageRepresentations.isEmpty {
-                let representations: [ImageRepresentationWithReference] = peer.profileImageRepresentations.map({ ImageRepresentationWithReference(representation: $0, reference: .avatar(peer: peerReference, resource: $0.resource)) })
+                let representations: [ImageRepresentationWithReference] = peer.profileImageRepresentations.map {
+                    ImageRepresentationWithReference(
+                        representation: $0,
+                        reference: .avatar(peer: peerReference, resource: $0.resource)
+                    )
+                }
+                print(peerReference)
+                print(representations)
                 // INFO: Здесь сетается аватарка пользователя на бекграунд
-                self.imageNode.setSignal(chatAvatarGalleryPhoto(account: self.account, representations: representations, immediateThumbnailData: nil, autoFetchFullSize: true))
+                // TODO: обновить аватарку в кружочке
+                // TODO: создать кружочек.
+//                self.imageNode.setSignal(
+//                    chatAvatarGalleryPhoto(
+//                        account: self.account,
+//                        representations: representations,
+//                        immediateThumbnailData: nil,
+//                        autoFetchFullSize: true
+//                    )
+//                )
                 self.dimNode.isHidden = false
             } else {
-                self.imageNode.setSignal(callDefaultBackground())
                 self.dimNode.isHidden = true
             }
             
@@ -1143,6 +1158,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             }
         }
         self.statusNode.status = statusValue
+        // INFO: Это количество антеннок в UI от 0 до 4.
         self.statusNode.reception = statusReception
         
         if let callState = self.callState {
@@ -1157,6 +1173,8 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         self.updateToastContent()
         self.updateButtonsMode()
         self.updateDimVisibility()
+        
+        self.backgroundGradientNode.update(presentationCallState: callState.state)
         
         if self.incomingVideoViewRequested || self.outgoingVideoViewRequested {
             if self.incomingVideoViewRequested && self.outgoingVideoViewRequested {
@@ -1577,10 +1595,13 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         }
         
         // INFO: тут можно поменять фрейм бекграунд картинки, анимированно
-        transition.updateFrame(node: self.imageNode, frame: containerFullScreenFrame)
-        let arguments = TransformImageArguments(corners: ImageCorners(), imageSize: CGSize(width: 640.0, height: 640.0).aspectFilled(layout.size), boundingSize: layout.size, intrinsicInsets: UIEdgeInsets())
-        let apply = self.imageNode.asyncLayout()(arguments)
-        apply()
+//        transition.updateFrame(node: self.imageNode, frame: containerFullScreenFrame)
+//        let arguments = TransformImageArguments(corners: ImageCorners(), imageSize: CGSize(width: 640.0, height: 640.0).aspectFilled(layout.size), boundingSize: layout.size, intrinsicInsets: UIEdgeInsets())
+//        let apply = self.imageNode.asyncLayout()(arguments)
+//        apply()
+        
+        transition.updateFrame(node: self.backgroundGradientNode, frame: containerFullScreenFrame)
+        self.backgroundGradientNode.updateLayout(size: containerFullScreenFrame.size)
         
         let navigationOffset: CGFloat = max(20.0, layout.safeInsets.top)
         let topOriginY = interpolate(from: -20.0, to: navigationOffset, value: uiDisplayTransition)
