@@ -234,6 +234,7 @@ private final class CallControllerReceptionNodeParameters: NSObject {
 
 private let receptionNodeSize = CGSize(width: 24.0, height: 10.0)
 
+// INFO: View с четырмя уровнями антеннки
 final class CallControllerReceptionNode : ASDisplayNode {
     var reception: Int32 = 4 {
         didSet {

@@ -30,10 +30,11 @@ private final class CallVideoNode: ASDisplayNode, PreviewVideoNode {
     private let videoTransformContainer: ASDisplayNode
     private let videoView: PresentationCallVideoView
     
-    private var effectView: UIVisualEffectView?
-    private let videoPausedNode: ImmediateTextNode
-    
+    // INFO: view для blur-а видео
+    private var blurredEffectView: UIVisualEffectView?
     private var isBlurred: Bool = false
+    
+    private let videoPausedNode: ImmediateTextNode
     private var currentCornerRadius: CGFloat = 0.0
     
     private let isReadyUpdated: () -> Void
@@ -283,7 +284,7 @@ private final class CallVideoNode: ASDisplayNode, PreviewVideoNode {
         // On iOS 13 and later metal layer transformation is broken if the layer does not require compositing
         self.videoView.view.alpha = 0.995
         
-        if let effectView = self.effectView {
+        if let effectView = self.blurredEffectView {
             transition.updateFrame(view: effectView, frame: localVideoFrame)
         }
         
@@ -300,22 +301,22 @@ private final class CallVideoNode: ASDisplayNode, PreviewVideoNode {
         self.isBlurred = isBlurred
         
         if isBlurred {
-            if self.effectView == nil {
+            if self.blurredEffectView == nil {
                 let effectView = UIVisualEffectView()
-                self.effectView = effectView
+                self.blurredEffectView = effectView
                 effectView.frame = self.videoTransformContainer.bounds
                 self.videoTransformContainer.view.addSubview(effectView)
             }
             if animated {
                 UIView.animate(withDuration: 0.3, animations: {
                     self.videoPausedNode.alpha = 1.0
-                    self.effectView?.effect = UIBlurEffect(style: light ? .light : .dark)
+                    self.blurredEffectView?.effect = UIBlurEffect(style: light ? .light : .dark)
                 })
             } else {
-                self.effectView?.effect = UIBlurEffect(style: light ? .light : .dark)
+                self.blurredEffectView?.effect = UIBlurEffect(style: light ? .light : .dark)
             }
-        } else if let effectView = self.effectView {
-            self.effectView = nil
+        } else if let effectView = self.blurredEffectView {
+            self.blurredEffectView = nil
             UIView.animate(withDuration: 0.3, animations: {
                 self.videoPausedNode.alpha = 0.0
                 effectView.effect = nil
@@ -371,7 +372,10 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     private let videoContainerNode: PinchSourceContainerNode
     
     private let backgroundGradientNode: CallBackgroundNode
-    private let dimNode: ASImageNode
+    // INFO: оверлей для создания темного градиента поверх video чата
+    private let videoDimNode: ASImageNode
+    
+    private let avatarNode: CallUserAvatarNode
     
     private var candidateIncomingVideoNodeValue: CallVideoNode?
     private var incomingVideoNodeValue: CallVideoNode?
@@ -408,6 +412,8 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     private var debugNode: CallDebugNode?
     
     private var keyTextData: (Data, String)?
+    
+    // INFO: view c ключами эмодзи
     private let keyButtonNode: CallControllerKeyButton
     
     private var validLayout: (ContainerViewLayout, CGFloat)?
@@ -484,11 +490,12 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         self.videoContainerNode = PinchSourceContainerNode()
                 
         self.backgroundGradientNode = CallBackgroundNode(gradientState: .ringingOrCallEnded)
+        self.avatarNode = CallUserAvatarNode()
         
-        self.dimNode = ASImageNode()
-        self.dimNode.contentMode = .scaleToFill
-        self.dimNode.isUserInteractionEnabled = false
-        self.dimNode.backgroundColor = UIColor(white: 0.0, alpha: 0.3)
+        self.videoDimNode = ASImageNode()
+        self.videoDimNode.contentMode = .scaleToFill
+        self.videoDimNode.isUserInteractionEnabled = false
+        self.videoDimNode.backgroundColor = UIColor(white: 0.0, alpha: 0.3)
         
         self.backButtonArrowNode = ASImageNode()
         self.backButtonArrowNode.displayWithoutProcessing = true
@@ -531,8 +538,9 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         }
 
         self.containerNode.addSubnode(self.backgroundGradientNode)
+        self.containerNode.addSubnode(self.avatarNode)
         self.containerNode.addSubnode(self.videoContainerNode)
-        self.containerNode.addSubnode(self.dimNode)
+        self.containerNode.addSubnode(self.videoDimNode)
         self.containerNode.addSubnode(self.statusNode)
         self.containerNode.addSubnode(self.buttonsNode)
         self.containerNode.addSubnode(self.toastNode)
@@ -795,8 +803,13 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                         reference: .avatar(peer: peerReference, resource: $0.resource)
                     )
                 }
-                print(peerReference)
                 print(representations)
+                self.avatarNode.updateData(
+                    peer: peer,
+                    account: self.account,
+                    sharedAccountContext: self.sharedContext
+                )
+                
                 // INFO: Здесь сетается аватарка пользователя на бекграунд
                 // TODO: обновить аватарку в кружочке
                 // TODO: создать кружочек.
@@ -808,9 +821,9 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
 //                        autoFetchFullSize: true
 //                    )
 //                )
-                self.dimNode.isHidden = false
+                self.videoDimNode.isHidden = false
             } else {
-                self.dimNode.isHidden = true
+                self.videoDimNode.isHidden = true
             }
             
             self.toastNode.title = EnginePeer(peer).compactDisplayTitle
@@ -862,7 +875,8 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         var statusReception: Int32?
         
         switch callState.remoteVideoState {
-        case .active, .paused:
+        case .active,
+             .paused:
             if !self.incomingVideoViewRequested {
                 self.incomingVideoViewRequested = true
                 let delayUntilInitialized = true
@@ -940,7 +954,18 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         }
         
         switch callState.videoState {
-        case .active(false), .paused(false):
+        case .paused,
+             .active:
+            self.videoDimNode.isHidden = false
+        case .inactive,
+             .notAvailable:
+            self.videoDimNode.isHidden = true
+        }
+        
+        // INFO: это view state текущего пользователя, под которым зашли в приложение
+        switch callState.videoState {
+        case .active(false),
+             .paused(false):
             if !self.outgoingVideoViewRequested {
                 self.outgoingVideoViewRequested = true
                 let delayUntilInitialized = self.isRequestingVideo
@@ -1243,18 +1268,18 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             visible = false
         }
         
-        let currentVisible = self.dimNode.image == nil
+        let currentVisible = self.videoDimNode.image == nil
         if visible != currentVisible {
             let color = visible ? UIColor(rgb: 0x000000, alpha: 0.3) : UIColor.clear
             let image: UIImage? = visible ? nil : generateGradientImage(size: CGSize(width: 1.0, height: 640.0), colors: [UIColor.black.withAlphaComponent(0.3), UIColor.clear, UIColor.clear, UIColor.black.withAlphaComponent(0.3)], locations: [0.0, 0.22, 0.7, 1.0])
             if case let .animated(duration, _) = transition {
-                UIView.transition(with: self.dimNode.view, duration: duration, options: .transitionCrossDissolve, animations: {
-                    self.dimNode.backgroundColor = color
-                    self.dimNode.image = image
+                UIView.transition(with: self.videoDimNode.view, duration: duration, options: .transitionCrossDissolve, animations: {
+                    self.videoDimNode.backgroundColor = color
+                    self.videoDimNode.image = image
                 }, completion: nil)
             } else {
-                self.dimNode.backgroundColor = color
-                self.dimNode.image = image
+                self.videoDimNode.backgroundColor = color
+                self.videoDimNode.image = image
             }
         }
         self.statusNode.setVisible(visible || self.keyPreviewNode != nil, transition: transition)
@@ -1586,8 +1611,8 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         transition.updateFrame(node: self.videoContainerNode, frame: containerFullScreenFrame)
         self.videoContainerNode.update(size: containerFullScreenFrame.size, transition: transition)
         
-        transition.updateAlpha(node: self.dimNode, alpha: pinchTransitionAlpha)
-        transition.updateFrame(node: self.dimNode, frame: containerFullScreenFrame)
+        transition.updateAlpha(node: self.videoDimNode, alpha: pinchTransitionAlpha)
+        transition.updateFrame(node: self.videoDimNode, frame: containerFullScreenFrame)
         
         if let keyPreviewNode = self.keyPreviewNode {
             transition.updateFrame(node: keyPreviewNode, frame: containerFullScreenFrame)
@@ -1616,27 +1641,53 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         transition.updateAlpha(node: self.backButtonNode, alpha: overlayAlpha)
         transition.updateAlpha(node: self.toastNode, alpha: toastAlpha)
         
-        var statusOffset: CGFloat
+        // INFO: смещение имени пользователя и статуса звонка
+        
+        // Chat GPT: On an iPhone, both the width and height size classes are typically "Compact", since the screen is relatively small. On an iPad, the width and height size classes are usually "Regular", since the screen is larger and can accommodate more content.
+        
+        // TODO: сделать нормальное смещение для всех экранов по аналогии с avatarOffset = 174.0, в соответсвии с фигмой
+        var avatarOffset: CGFloat
         if layout.metrics.widthClass == .regular && layout.metrics.heightClass == .regular {
             if layout.size.height.isEqual(to: 1366.0) {
-                statusOffset = 160.0
+                avatarOffset = 160.0
             } else {
-                statusOffset = 120.0
+                avatarOffset = 120.0
             }
         } else {
             if layout.size.height.isEqual(to: 736.0) {
-                statusOffset = 80.0
+                avatarOffset = 80.0
             } else if layout.size.width.isEqual(to: 320.0) {
-                statusOffset = 60.0
+                avatarOffset = 60.0
             } else {
-                statusOffset = 64.0
+                //statusOffset = 64.0
+                avatarOffset = 174.0
             }
         }
         
-        statusOffset += layout.safeInsets.top
+        avatarOffset += layout.safeInsets.top
         
+        let avatarSide = 136.0
+        
+        transition.updateFrame(
+            node: self.avatarNode,
+            frame: CGRect(
+                origin: CGPoint(
+                    x: containerFullScreenFrame.center.x - avatarSide / 2,
+                    y: avatarOffset
+                ),
+                size: CGSize(width: avatarSide, height: avatarSide)
+            )
+        )
+        self.avatarNode.updateLayout()
+
         let statusHeight = self.statusNode.updateLayout(constrainedWidth: layout.size.width, transition: transition)
-        transition.updateFrame(node: self.statusNode, frame: CGRect(origin: CGPoint(x: 0.0, y: statusOffset), size: CGSize(width: layout.size.width, height: statusHeight)))
+        transition.updateFrame(
+            node: self.statusNode,
+            frame: CGRect(
+                origin: CGPoint(x: 0.0, y: self.avatarNode.frame.maxY + 22.0),
+                size: CGSize(width: layout.size.width, height: statusHeight)
+            )
+        )
         transition.updateAlpha(node: self.statusNode, alpha: overlayAlpha)
         
         transition.updateFrame(node: self.toastNode, frame: CGRect(origin: CGPoint(x: 0.0, y: toastOriginY), size: CGSize(width: layout.size.width, height: toastHeight)))
