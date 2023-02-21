@@ -404,7 +404,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     private var outgoingVideoNodeCorner: VideoNodeCorner = .bottomRight
     private let backButtonArrowNode: ASImageNode
     private let backButtonNode: HighlightableButtonNode
-    private let statusNode: CallControllerStatusNode
+    private let nameAndStatusNode: CallControllerStatusNode
     private let toastNode: CallControllerToastContainerNode
     private let buttonsNode: CallControllerButtonsNode
     private var keyPreviewNode: CallControllerKeyPreviewNode?
@@ -503,7 +503,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         self.backButtonArrowNode.image = NavigationBarTheme.generateBackArrowImage(color: .white)
         self.backButtonNode = HighlightableButtonNode()
         
-        self.statusNode = CallControllerStatusNode()
+        self.nameAndStatusNode = CallControllerStatusNode()
         
         self.buttonsNode = CallControllerButtonsNode(strings: self.presentationData.strings)
         self.toastNode = CallControllerToastContainerNode(strings: self.presentationData.strings)
@@ -541,7 +541,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         self.containerNode.addSubnode(self.avatarNode)
         self.containerNode.addSubnode(self.videoContainerNode)
         self.containerNode.addSubnode(self.videoDimNode)
-        self.containerNode.addSubnode(self.statusNode)
+        self.containerNode.addSubnode(self.nameAndStatusNode)
         self.containerNode.addSubnode(self.buttonsNode)
         self.containerNode.addSubnode(self.toastNode)
         self.containerNode.addSubnode(self.keyButtonNode)
@@ -829,9 +829,9 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             self.toastNode.title = EnginePeer(peer).compactDisplayTitle
             
             // INFO: Здесь сетается имя пользователя, который звонит
-            self.statusNode.title = EnginePeer(peer).displayTitle(strings: self.presentationData.strings, displayOrder: self.presentationData.nameDisplayOrder)
+            self.nameAndStatusNode.title = EnginePeer(peer).displayTitle(strings: self.presentationData.strings, displayOrder: self.presentationData.nameDisplayOrder)
             if hasOther {
-                self.statusNode.subtitle = self.presentationData.strings.Call_AnsweringWithAccount(EnginePeer(accountPeer).displayTitle(strings: self.presentationData.strings, displayOrder: self.presentationData.nameDisplayOrder)).string
+                self.nameAndStatusNode.subtitle = self.presentationData.strings.Call_AnsweringWithAccount(EnginePeer(accountPeer).displayTitle(strings: self.presentationData.strings, displayOrder: self.presentationData.nameDisplayOrder)).string
                 
                 if let callState = self.callState {
                     self.updateCallState(callState)
@@ -953,14 +953,16 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             }
         }
         
-        switch callState.videoState {
-        case .paused,
-             .active:
-            self.videoDimNode.isHidden = false
-        case .inactive,
-             .notAvailable:
-            self.videoDimNode.isHidden = true
-        }
+        // INFO: это мой код
+//
+//        switch callState.videoState {
+//        case .paused,
+//             .active:
+//            self.videoDimNode.isHidden = false
+//        case .inactive,
+//             .notAvailable:
+//            self.videoDimNode.isHidden = true
+//        }
         
         // INFO: это view state текущего пользователя, под которым зашли в приложение
         switch callState.videoState {
@@ -1137,8 +1139,8 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 } else {
                     text = self.presentationData.strings.Call_IncomingVoiceCall
                 }
-                if !self.statusNode.subtitle.isEmpty {
-                    text += "\n\(self.statusNode.subtitle)"
+                if !self.nameAndStatusNode.subtitle.isEmpty {
+                    text += "\n\(self.nameAndStatusNode.subtitle)"
                 }
                 statusValue = .text(string: text, displayLogo: false)
             case .active(let timestamp, let reception, let keyVisualHash), .reconnecting(let timestamp, let reception, let keyVisualHash):
@@ -1182,9 +1184,9 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                     break
             }
         }
-        self.statusNode.status = statusValue
+        self.nameAndStatusNode.status = statusValue
         // INFO: Это количество антеннок в UI от 0 до 4.
-        self.statusNode.reception = statusReception
+        self.nameAndStatusNode.reception = statusReception
         
         if let callState = self.callState {
             switch callState.state {
@@ -1263,10 +1265,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             return
         }
         
-        var visible = true
-        if case .active = callState.state, self.incomingVideoNodeValue != nil || self.outgoingVideoNodeValue != nil {
-            visible = false
-        }
+        let visible = self.incomingVideoNodeValue != nil || self.outgoingVideoNodeValue != nil
         
         let currentVisible = self.videoDimNode.image == nil
         if visible != currentVisible {
@@ -1282,7 +1281,13 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 self.videoDimNode.image = image
             }
         }
-        self.statusNode.setVisible(visible || self.keyPreviewNode != nil, transition: transition)
+        
+        var nameAndStatusNodeVisible = true
+        if case .active = callState.state, self.incomingVideoNodeValue != nil || self.outgoingVideoNodeValue != nil {
+            nameAndStatusNodeVisible = false
+        }
+        
+        self.nameAndStatusNode.setVisible(nameAndStatusNodeVisible || self.keyPreviewNode != nil, transition: transition)
     }
     
     private func maybeScheduleUIHidingForActiveVideoCall() {
@@ -1680,15 +1685,15 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         )
         self.avatarNode.updateLayout()
 
-        let statusHeight = self.statusNode.updateLayout(constrainedWidth: layout.size.width, transition: transition)
+        let statusHeight = self.nameAndStatusNode.updateLayout(constrainedWidth: layout.size.width, transition: transition)
         transition.updateFrame(
-            node: self.statusNode,
+            node: self.nameAndStatusNode,
             frame: CGRect(
                 origin: CGPoint(x: 0.0, y: self.avatarNode.frame.maxY + 22.0),
                 size: CGSize(width: layout.size.width, height: statusHeight)
             )
         )
-        transition.updateAlpha(node: self.statusNode, alpha: overlayAlpha)
+        transition.updateAlpha(node: self.nameAndStatusNode, alpha: overlayAlpha)
         
         transition.updateFrame(node: self.toastNode, frame: CGRect(origin: CGPoint(x: 0.0, y: toastOriginY), size: CGSize(width: layout.size.width, height: toastHeight)))
         transition.updateFrame(node: self.buttonsNode, frame: CGRect(origin: CGPoint(x: 0.0, y: buttonsOriginY), size: CGSize(width: layout.size.width, height: buttonsHeight)))
@@ -1841,7 +1846,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 }
             })
             
-            self.containerNode.insertSubnode(keyPreviewNode, belowSubnode: self.statusNode)
+            self.containerNode.insertSubnode(keyPreviewNode, belowSubnode: self.nameAndStatusNode)
             self.keyPreviewNode = keyPreviewNode
             
             if let (validLayout, _) = self.validLayout {
@@ -1931,7 +1936,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                     }
                 } else {
                     let point = recognizer.location(in: recognizer.view)
-                    if self.statusNode.frame.contains(point) {
+                    if self.nameAndStatusNode.frame.contains(point) {
                         if self.easyDebugAccess {
                             self.presentDebugNode()
                         } else {
