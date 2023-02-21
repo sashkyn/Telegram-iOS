@@ -1229,6 +1229,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     }
     
     private func updateToastContent() {
+        // INFO: тост со всеми тултип сообщениями для информирования лейблами
         guard let callState = self.callState else {
             return
         }
@@ -1255,6 +1256,12 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             }
             if self.isMuted, let (availableOutputs, _) = self.audioOutputState, availableOutputs.count > 2 {
                 toastContent.insert(.mute)
+            }
+            // может в другое место пихнуть?
+            if case .active(_, let statusReception, _) = callState.state,
+               let statusReception = statusReception,
+               statusReception < 2 {
+                toastContent.insert(.weakSignal)
             }
             self.toastContent = toastContent
         }

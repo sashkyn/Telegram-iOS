@@ -145,7 +145,7 @@ final class CallControllerButtonsNode: ASDisplayNode {
         var animatePositionsWithDelay = false
         if let previousMode = previousMode {
             switch previousMode {
-            case .incoming, .outgoingRinging:
+            case .incoming:
                 if case .active = mode {
                     animatePositionsWithDelay = true
                 }
@@ -197,10 +197,10 @@ final class CallControllerButtonsNode: ASDisplayNode {
             videoState = videoStateValue
         }
         
+        // INFO: вот тут распологаются кнопки экшенов вызова
         var buttons: [PlacedButton] = []
         switch mappedState {
-        case .incomingRinging,
-             .outgoingRinging:
+        case .incomingRinging:
             var topButtons: [ButtonDescription] = []
             var bottomButtons: [ButtonDescription] = []
             
@@ -267,12 +267,8 @@ final class CallControllerButtonsNode: ASDisplayNode {
                 topButtonsLeftOffset += largeButtonSize + topButtonsSpacing
             }
             
-            if case .incomingRinging = mappedState {
-                bottomButtons.append(.end(.decline))
-                bottomButtons.append(.accept)
-            } else {
-                bottomButtons.append(.end(.outgoing))
-            }
+            bottomButtons.append(.end(.decline))
+            bottomButtons.append(.accept)
             
             let bottomButtonsContentWidth = CGFloat(bottomButtons.count) * largeButtonSize
             let bottomButtonsAvailableSpacingWidth = width - bottomButtonsContentWidth - minLargeButtonSideInset * 2.0
@@ -285,8 +281,8 @@ final class CallControllerButtonsNode: ASDisplayNode {
             }
             
             height = largeButtonSize + topBottomSpacing + largeButtonSize + max(bottomInset + 32.0, 46.0)
-        // INFO: вот тут распологаются кнопки экшенов вызова
-        case .active:
+        case .active,
+             .outgoingRinging:
             let isCameraActive: Bool
             let isScreencastActive: Bool
             let isCameraEnabled: Bool

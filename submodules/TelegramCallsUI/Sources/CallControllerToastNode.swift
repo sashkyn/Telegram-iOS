@@ -14,12 +14,14 @@ private enum ToastDescription: Equatable {
         case microphone
         case mute
         case battery
+        case weakSignal
     }
     
     case camera
     case microphone
     case mute
     case battery
+    case weakSignal
     
     var key: Key {
         switch self {
@@ -31,6 +33,8 @@ private enum ToastDescription: Equatable {
             return .mute
         case .battery:
             return .battery
+        case .weakSignal:
+            return .weakSignal
         }
     }
 }
@@ -46,6 +50,7 @@ struct CallControllerToastContent: OptionSet {
     public static let microphone = CallControllerToastContent(rawValue: 1 << 1)
     public static let mute = CallControllerToastContent(rawValue: 1 << 2)
     public static let battery = CallControllerToastContent(rawValue: 1 << 3)
+    public static let weakSignal = CallControllerToastContent(rawValue: 1 << 4)
 }
 
 final class CallControllerToastContainerNode: ASDisplayNode {
@@ -93,6 +98,9 @@ final class CallControllerToastContainerNode: ASDisplayNode {
         if content.contains(.battery) {
             toasts.append(.battery)
         }
+        if content.contains(.weakSignal) {
+            toasts.append(.weakSignal)
+        }
         
         var transitions: [ToastDescription.Key: (ContainedViewLayoutTransition, CGFloat, Bool)] = [:]
         var validKeys: [ToastDescription.Key] = []
@@ -136,6 +144,13 @@ final class CallControllerToastContainerNode: ASDisplayNode {
                         key: .battery,
                         image: .battery,
                         text: strings.Call_BatteryLow(self.title).string
+                    )
+                case .weakSignal:
+                    toastContent = CallControllerToastItemNode.Content(
+                        key: .battery,
+                        image: .battery,
+                        text: "Weak network signal" //strings.Call_BatteryLow(self.title).string
+                        // TODO: Strings
                     )
             }
             let toastHeight = toastNode.update(width: width, content: toastContent, transition: toastTransition)
