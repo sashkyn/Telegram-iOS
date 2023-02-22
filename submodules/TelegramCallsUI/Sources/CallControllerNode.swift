@@ -1694,7 +1694,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         transition.updateFrame(
             node: self.nameAndStatusNode,
             frame: CGRect(
-                origin: CGPoint(x: 0.0, y: self.avatarNode.frame.maxY + 22.0),
+                origin: CGPoint(x: 0.0, y: self.avatarNode.frame.maxY + 40.0),
                 size: CGSize(width: layout.size.width, height: statusHeight)
             )
         )
