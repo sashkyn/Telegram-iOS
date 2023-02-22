@@ -811,8 +811,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 )
                 
                 // INFO: Здесь сетается аватарка пользователя на бекграунд
-                // TODO: обновить аватарку в кружочке
-                // TODO: создать кружочек.
 //                self.imageNode.setSignal(
 //                    chatAvatarGalleryPhoto(
 //                        account: self.account,

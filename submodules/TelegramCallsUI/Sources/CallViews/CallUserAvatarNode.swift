@@ -4,14 +4,19 @@ import AvatarNode
 import AccountContext
 import Postbox
 import TelegramCore
+import SwiftSignalKit
+import AudioBlob
+import Display
+import AnimatedAvatarSetNode
+
+private let avatarFont = avatarPlaceholderFont(size: 12.0)
 
 final class CallUserAvatarNode: ASDisplayNode {
     
-    private let avatarNode: AvatarNode
+    private let avatarNode: AnimatedAvatarSetNode
     
     override init() {
-        // INFO: видимо это аватар с буквами
-        self.avatarNode = AvatarNode(font: avatarPlaceholderFont(size: 26.0))
+        self.avatarNode = AnimatedAvatarSetNode()
         super.init()
         self.addSubnode(self.avatarNode)
     }
@@ -21,15 +26,26 @@ final class CallUserAvatarNode: ASDisplayNode {
         account: Account,
         sharedAccountContext: SharedAccountContext
     ) {
-        let accountContext = sharedAccountContext.makeTempAccountContext(account: account)
-        self.avatarNode.setPeer(
-            context: accountContext,
-            theme: (accountContext.sharedContext.currentPresentationData.with { $0 }).theme,
-            peer: EnginePeer(peer)
+        let avatarContext = AnimatedAvatarSetContext()
+        
+        let content = avatarContext.update(peers: [EnginePeer(peer)], animated: true)
+        let size = self.avatarNode.update(
+            context: sharedAccountContext.makeTempAccountContext(account: account),
+            content: content,
+//            itemSize: CGSize(width: 90, height: 90),
+            animated: true,
+            synchronousLoad: true
         )
+        self.avatarNode.frame = CGRect(origin: CGPoint(), size: size)
+        
+//        self.avatarNode.updateAudioLevels(
+//            color: UIColor.blue,
+//            backgroundColor: UIColor.black,
+//            levels: [peer.id:10000.0]
+//        )
     }
     
     func updateLayout() {
-        self.avatarNode.frame = CGRect(origin: CGPoint(), size: self.frame.size)
+        
     }
 }
