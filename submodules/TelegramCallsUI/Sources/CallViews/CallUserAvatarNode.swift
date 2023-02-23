@@ -46,9 +46,16 @@ final class CallUserAvatarNode: ASDisplayNode {
         )
         self.avatarNode?.updateAudioLevel(
             color: UIColor.white,
-            value: 3.0
+            value: 0.15
         )
         avatarNode?.setNeedsLayout()
+    }
+    
+    func update(audioLevel: Float) {
+        self.avatarNode?.updateAudioLevel(
+            color: UIColor.white,
+            value: audioLevel
+        )
     }
 }
 
@@ -148,50 +155,43 @@ private final class ContentNode: ASDisplayNode {
     }
     
     func updateAudioLevel(color: UIColor, value: Float) {
+        // INFO: инициализация вьюшки аудио волн и все
         if self.audioLevelView == nil, value > 0.0 {
             let blobFrame = self.unclippedNode.bounds.insetBy(dx: -30.0, dy: -30.0)
             
             let audioLevelView = VoiceBlobView(
                 frame: blobFrame,
-                maxLevel: 0.3,
+                maxLevel: 1.0,
                 smallBlobRange: (0, 0),
-                mediumBlobRange: (0.7, 0.8),
-                bigBlobRange: (0.8, 0.9)
+                mediumBlobRange: (0.8, 1.2),
+                bigBlobRange: (0.9, 1.4)
             )
-            
-            let maskRect = CGRect(origin: .zero, size: blobFrame.size)
-            let playbackMaskLayer = CAShapeLayer()
-            playbackMaskLayer.frame = maskRect
-            playbackMaskLayer.fillRule = .evenOdd
-            let maskPath = UIBezierPath()
-            maskPath.append(UIBezierPath(roundedRect: self.unclippedNode.bounds.offsetBy(dx: 8, dy: 8), cornerRadius: maskRect.width / 2.0))
-            maskPath.append(UIBezierPath(rect: maskRect))
-            playbackMaskLayer.path = maskPath.cgPath
-//            audioLevelView.layer.mask = playbackMaskLayer
             
             audioLevelView.setColor(color)
             self.audioLevelView = audioLevelView
             self.view.insertSubview(audioLevelView, at: 0)
         }
         
-        let level = min(1.0, max(0.0, CGFloat(value)))
+//        let level = min(1.0, max(0.0, CGFloat(value)))
         if let audioLevelView = self.audioLevelView {
             audioLevelView.updateLevel(CGFloat(value) * 2.0)
             
-            let avatarScale: CGFloat
+//            let avatarScale: CGFloat
             let audioLevelScale: CGFloat
             if value > 0.0 {
                 audioLevelView.startAnimating()
-                avatarScale = 1.03 + level * 0.07
+//                avatarScale = 1.03 + level * 0.07
                 audioLevelScale = 1.0
             } else {
                 audioLevelView.stopAnimating(duration: 0.5)
-                avatarScale = 1.0
+//                avatarScale = 1.0
                 audioLevelScale = 0.01
             }
             
             let transition: ContainedViewLayoutTransition = .animated(duration: 0.2, curve: .easeInOut)
-            transition.updateSublayerTransformScale(node: self, scale: CGPoint(x: avatarScale, y: avatarScale), beginWithCurrentState: true)
+            
+            // INFO: можно использовать для прыгания аватарки
+//            transition.updateSublayerTransformScale(node: self, scale: CGPoint(x: avatarScale, y: avatarScale), beginWithCurrentState: true)
             transition.updateSublayerTransformScale(layer: audioLevelView.layer, scale: CGPoint(x: audioLevelScale, y: audioLevelScale), beginWithCurrentState: true)
         }
     }

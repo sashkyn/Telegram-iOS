@@ -71,6 +71,7 @@ public final class PresentationCallImpl: PresentationCall {
         return self.statePromise.get()
     }
     
+    // INFO: громкость звука собеседника
     private let audioLevelPromise = ValuePromise<Float>(0.0)
     public var audioLevel: Signal<Float, NoError> {
         return self.audioLevelPromise.get()
@@ -573,6 +574,7 @@ public final class PresentationCallImpl: PresentationCall {
                     self.audioLevelDisposable = (ongoingContext.audioLevel
                     |> deliverOnMainQueue).start(next: { [weak self] level in
                         if let strongSelf = self {
+                            // INFO: Это громкость звонка целиком от обоих участников
                             strongSelf.audioLevelPromise.set(level)
                         }
                     })

@@ -470,6 +470,8 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     private var deviceOrientation: UIDeviceOrientation = .portrait
     private var orientationDidChangeObserver: NSObjectProtocol?
     
+    private var audioLevelDisposable: Disposable?
+    
     private var currentRequestedAspect: CGFloat?
     
     init(sharedContext: SharedAccountContext, account: Account, presentationData: PresentationData, statusBar: StatusBar, debugInfo: Signal<(String, String), NoError>, shouldStayHiddenUntilConnection: Bool = false, easyDebugAccess: Bool, call: PresentationCall) {
@@ -754,12 +756,17 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 strongSelf.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .animated(duration: 0.3, curve: .easeInOut))
             }
         }
+        
+        self.audioLevelDisposable = (call.audioLevel |> deliverOnMainQueue).start(next: { [weak self] audioLevel in
+            self?.avatarNode.update(audioLevel: audioLevel)
+        })
     }
     
     deinit {
         if let orientationDidChangeObserver = self.orientationDidChangeObserver {
             NotificationCenter.default.removeObserver(orientationDidChangeObserver)
         }
+        self.audioLevelDisposable?.dispose()
     }
     
     func displayCameraTooltip() {
