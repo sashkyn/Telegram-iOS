@@ -231,6 +231,7 @@ public final class CallController: ViewController {
             let _ = self?.dismiss()
         }
         
+        // INFO: Вызов окошка о рейтинге. Нужно убрать это и сделать внутри CallNode
         self.controllerNode.presentCallRating = { [weak self] callId, isVideo in
             if let strongSelf = self, !strongSelf.presentedCallRating {
                 strongSelf.presentedCallRating = true

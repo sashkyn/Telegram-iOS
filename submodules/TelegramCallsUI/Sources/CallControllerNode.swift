@@ -903,6 +903,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                             strongSelf.updateButtonsMode(transition: .animated(duration: 0.4, curve: .spring))
                             
                             strongSelf.updateDimVisibility()
+                            strongSelf.updateGradinentAnimationState()
                             strongSelf.maybeScheduleUIHidingForActiveVideoCall()
                         }
                         
@@ -951,17 +952,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             }
         }
         
-        // INFO: это мой код
-//
-//        switch callState.videoState {
-//        case .paused,
-//             .active:
-//            self.videoDimNode.isHidden = false
-//        case .inactive,
-//             .notAvailable:
-//            self.videoDimNode.isHidden = true
-//        }
-        
         // INFO: это view state текущего пользователя, под которым зашли в приложение
         switch callState.videoState {
         case .active(false),
@@ -1000,6 +990,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                             strongSelf.updateButtonsMode(transition: .animated(duration: 0.4, curve: .spring))
                             
                             strongSelf.updateDimVisibility()
+                            strongSelf.updateGradinentAnimationState()
                             strongSelf.maybeScheduleUIHidingForActiveVideoCall()
                         }
                         
@@ -1198,6 +1189,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         self.updateToastContent()
         self.updateButtonsMode()
         self.updateDimVisibility()
+        self.updateGradinentAnimationState()
         
         self.backgroundGradientNode.update(presentationCallState: callState.state)
         
@@ -1293,6 +1285,19 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         }
         
         self.nameAndStatusNode.setVisible(nameAndStatusNodeVisible || self.keyPreviewNode != nil, transition: transition)
+    }
+    
+    private func updateGradinentAnimationState() {
+        guard let callState = self.callState else {
+            backgroundGradientNode.stopSpinning()
+            return
+        }
+        
+        if case .active = callState.state, self.incomingVideoNodeValue != nil || self.outgoingVideoNodeValue != nil {
+            backgroundGradientNode.stopSpinning()
+        } else {
+            backgroundGradientNode.startSpinning()
+        }
     }
     
     private func maybeScheduleUIHidingForActiveVideoCall() {
@@ -1629,14 +1634,8 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             keyPreviewNode.updateLayout(size: layout.size, transition: .immediate)
         }
         
-        // INFO: тут можно поменять фрейм бекграунд картинки, анимированно
-//        transition.updateFrame(node: self.imageNode, frame: containerFullScreenFrame)
-//        let arguments = TransformImageArguments(corners: ImageCorners(), imageSize: CGSize(width: 640.0, height: 640.0).aspectFilled(layout.size), boundingSize: layout.size, intrinsicInsets: UIEdgeInsets())
-//        let apply = self.imageNode.asyncLayout()(arguments)
-//        apply()
-        
         transition.updateFrame(node: self.backgroundGradientNode, frame: containerFullScreenFrame)
-        self.backgroundGradientNode.updateLayout(size: containerFullScreenFrame.size)
+        self.backgroundGradientNode.updateLayout(size: containerFullScreenFrame.size, completion: {})
         
         let navigationOffset: CGFloat = max(20.0, layout.safeInsets.top)
         let topOriginY = interpolate(from: -20.0, to: navigationOffset, value: uiDisplayTransition)
@@ -1879,6 +1878,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .animated(duration: 0.4, curve: .spring))
             }
         } else {
+            self.backgroundGradientNode.stopSpinning()
             self.back?()
         }
     }

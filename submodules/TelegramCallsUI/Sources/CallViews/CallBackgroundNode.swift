@@ -6,24 +6,63 @@ import AccountContext
 final class CallBackgroundNode: ASDisplayNode {
     
     private var gradientState: GradientState
+    private var spinningState: SpinningState
+    
+    private var validLayout: CGSize?
     private let gradientNode: GradientBackgroundNode
     
     init(gradientState: GradientState = .ringingOrCallEnded) {
+        print("call gradient: init")
         self.gradientState = gradientState
-        self.gradientNode = createGradientBackgroundNode(colors: gradientState.colors, useSharedAnimationPhase: true)
+        self.spinningState = .stopped
+        self.gradientNode = createGradientBackgroundNode(
+            colors: gradientState.colors,
+            useSharedAnimationPhase: true
+        )
         
         super.init()
         
         self.addSubnode(self.gradientNode)
     }
     
-    func updateLayout(size: CGSize) {
+    func updateLayout(size: CGSize, completion: @escaping () -> Void) {
+        self.validLayout = size
+        print("call gradient: updateLayout")
         self.gradientNode.updateLayout(
             size: size,
             transition: .immediate,
-            extendAnimation: true, backwards: false,
-            completion: {}
+            extendAnimation: false,
+            backwards: false,
+            completion: completion
         )
+    }
+    
+    func startSpinning(fromAnimateNext: Bool = false) {
+        print("call gradient: startSpinning - fromAnimateNext = \(fromAnimateNext)")
+        guard fromAnimateNext || (validLayout != nil && spinningState == .stopped) else {
+            gradientNode.layer.removeAllAnimations()
+            return
+        }
+        
+        self.spinningState = .spinning
+        
+        self.gradientNode.animateEvent(
+            transition: .animated(duration: 0.5, curve: .linear),
+            extendAnimation: false,
+            backwards: false,
+            completion: { [weak self] in
+                if self?.spinningState == .spinning {
+                    // INFO: исправить цикличные вызовы после ухода с экрана на back
+                    self?.startSpinning(fromAnimateNext: true)
+                }
+            }
+        )
+    }
+    
+    func stopSpinning() {
+        print("call gradient: stopSpinning")
+        spinningState = .stopped
+        gradientNode.layer.removeAllAnimations()
     }
     
     func update(presentationCallState: PresentationCallState.State) {
@@ -44,6 +83,10 @@ final class CallBackgroundNode: ASDisplayNode {
         
         self.gradientNode.updateColors(colors: self.gradientState.colors)
     }
+    
+    deinit {
+        print("call gradient: deinit")
+    }
 }
 
 extension CallBackgroundNode {
@@ -63,6 +106,14 @@ extension CallBackgroundNode {
                 return Constants.weakSignalColors
             }
         }
+    }
+}
+
+extension CallBackgroundNode {
+    
+    enum SpinningState {
+        case spinning
+        case stopped
     }
 }
 
