@@ -13,8 +13,15 @@ private let avatarFont = avatarPlaceholderFont(size: 12.0)
 
 final class CallUserAvatarNode: ASDisplayNode {
     
+    private var audioBlobState: AudioBlobState
+    
     private var avatarNode: ContentNode?
     private var peer: Peer?
+    
+    override init() {
+        self.audioBlobState = .audio
+        super.init()
+    }
     
     func updateData(
         peer: Peer,
@@ -52,10 +59,41 @@ final class CallUserAvatarNode: ASDisplayNode {
     }
     
     func update(audioLevel: Float) {
+        guard audioBlobState == .audio else {
+            return
+        }
+        
         self.avatarNode?.updateAudioLevel(
             color: UIColor.white,
             value: audioLevel
         )
+    }
+    
+    func update(audioBlobState: AudioBlobState) {
+        self.audioBlobState = audioBlobState
+        
+        switch audioBlobState {
+        case .spinning,
+             .audio:
+            self.avatarNode?.updateAudioLevel(
+                color: UIColor.white,
+                value: 0.15
+            )
+        case .disabled:
+            self.avatarNode?.updateAudioLevel(
+                color: UIColor.white,
+                value: -1.0
+            )
+        }
+    }
+}
+
+extension CallUserAvatarNode {
+    
+    enum AudioBlobState {
+        case audio
+        case spinning
+        case disabled
     }
 }
 

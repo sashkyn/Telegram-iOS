@@ -407,7 +407,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     private let nameAndStatusNode: CallControllerStatusNode
     private let toastNode: CallControllerToastContainerNode
     private let buttonsNode: CallControllerButtonsNode
-    private var keyPreviewNode: CallControllerKeyPreviewNode?
+    private var keyPreviewNode: CallAlertKeyPreviewNode?
     
     private var debugNode: CallDebugNode?
     
@@ -470,7 +470,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     private var deviceOrientation: UIDeviceOrientation = .portrait
     private var orientationDidChangeObserver: NSObjectProtocol?
     
-    private var audioLevelDisposable: Disposable?
+    private var audioLevelDisposable: Disposable? = nil
     
     private var currentRequestedAspect: CGFloat?
     
@@ -1638,7 +1638,11 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         
         if let keyPreviewNode = self.keyPreviewNode {
             transition.updateFrame(node: keyPreviewNode, frame: containerFullScreenFrame)
-            keyPreviewNode.updateLayout(size: layout.size, transition: .immediate)
+            keyPreviewNode.updateLayout(
+                size: layout.size,
+                topOffset: self.avatarNode.frame.minY - 80,
+                transition: .immediate
+            )
         }
         
         transition.updateFrame(node: self.backgroundGradientNode, frame: containerFullScreenFrame)
@@ -1851,17 +1855,29 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     
     @objc func keyPressed() {
         if self.keyPreviewNode == nil, let keyText = self.keyTextData?.1, let peer = self.peer {
-            let keyPreviewNode = CallControllerKeyPreviewNode(keyText: keyText, infoText: self.presentationData.strings.Call_EmojiDescription(EnginePeer(peer).compactDisplayTitle).string.replacingOccurrences(of: "%%", with: "%"), dismiss: { [weak self] in
-                if let _ = self?.keyPreviewNode {
-                    self?.backPressed()
-                }
-            })
+            self.avatarNode.update(audioBlobState: .disabled)
+            self.avatarNode.isHidden = true
             
-            self.containerNode.insertSubnode(keyPreviewNode, belowSubnode: self.nameAndStatusNode)
+            let keyPreviewNode = CallAlertKeyPreviewNode(
+                keyText: keyText,
+                titleText: "This call is end-to end encrypted", // TODO: Strings
+                infoText: self.presentationData.strings.Call_EmojiDescription(EnginePeer(peer).compactDisplayTitle).string.replacingOccurrences(of: "%%", with: "%"),
+                dismiss: { [weak self] in
+                    if let _ = self?.keyPreviewNode {
+                        self?.backPressed()
+                    }
+                }
+            )
+            
+            self.containerNode.addSubnode(keyPreviewNode)
             self.keyPreviewNode = keyPreviewNode
             
             if let (validLayout, _) = self.validLayout {
-                keyPreviewNode.updateLayout(size: validLayout.size, transition: .immediate)
+                keyPreviewNode.updateLayout(
+                    size: validLayout.size,
+                    topOffset: self.avatarNode.frame.minY - 80,
+                    transition: .immediate
+                )
                 
                 self.keyButtonNode.isHidden = true
                 keyPreviewNode.animateIn(from: self.keyButtonNode.frame, fromNode: self.keyButtonNode)
@@ -1877,6 +1893,8 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             keyPreviewNode.animateOut(to: self.keyButtonNode.frame, toNode: self.keyButtonNode, completion: { [weak self, weak keyPreviewNode] in
                 self?.keyButtonNode.isHidden = false
                 keyPreviewNode?.removeFromSupernode()
+                self?.avatarNode.update(audioBlobState: .audio)
+                self?.avatarNode.isHidden = false
             })
             self.updateDimVisibility()
         } else if self.hasVideoNodes {
