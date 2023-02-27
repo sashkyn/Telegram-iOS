@@ -14,12 +14,7 @@ final class CallRatingNode: ASDisplayNode {
     private let subtitleNode: ASTextNode
     private let starContainerNode: ASDisplayNode
     private let starNodes: [ASButtonNode]
-    
-    private let closeButtonBluredBackgroundView: UIVisualEffectView
-    private let closeButtonFilledBackgoundView: UIView
-    private let closeButtonNode: ASButtonNode
-    private let closeWhiteTextNode: ASTextNode
-    private let closePurpleTextNode: ASTextNode
+    private let closeButtonNode: RatingCloseButtonNode
     
     private let animationStarNode: AnimatedStickerNode
     
@@ -37,18 +32,25 @@ final class CallRatingNode: ASDisplayNode {
         self.onRating = onRating
         
         self.titleNode = ASTextNode()
+        self.titleNode.displaysAsynchronously = false
+        
         self.subtitleNode = ASTextNode()
+        self.subtitleNode.displaysAsynchronously = false
         
         // INFO: генерация звездочек
         var starNodes: [ASButtonNode] = []
         for _ in 0 ..< 5 {
-            starNodes.append(ASButtonNode())
+            let button = ASButtonNode()
+            button.displaysAsynchronously = false
+            starNodes.append(button)
         }
         self.starNodes = starNodes
         
         self.starContainerNode = ASDisplayNode()
+        self.starContainerNode.displaysAsynchronously = false
         
-        self.closeButtonNode = ASButtonNode()
+        self.closeButtonNode = RatingCloseButtonNode()
+        self.closeButtonNode.displaysAsynchronously = false
         
         // INFO: блюр для рейтинга
         self.rateEffectView = UIVisualEffectView()
@@ -56,44 +58,34 @@ final class CallRatingNode: ASDisplayNode {
         
         // INFO: анимация звездочек
         self.animationStarNode = DefaultAnimatedStickerNodeImpl()
-        
-        // INFO: блюр для кнопки
-        self.closeButtonBluredBackgroundView = UIVisualEffectView()
-        self.closeButtonBluredBackgroundView.effect = UIBlurEffect(style: .light)
-        
-        // INFO: бекграунд для кнопки
-        self.closeButtonFilledBackgoundView = UIView()
-        
-        // INFO: текста для кнопки для анимации
-        self.closeWhiteTextNode = ASTextNode()
-        self.closePurpleTextNode = ASTextNode()
-        
+        self.animationStarNode.displaysAsynchronously = false
+
         super.init()
         
         self.view.addSubview(self.rateEffectView)
         self.rateEffectView.layer.cornerRadius = 20.0
         self.rateEffectView.clipsToBounds = true
         
-        self.view.addSubview(self.closeButtonBluredBackgroundView)
-        self.closeButtonBluredBackgroundView.layer.cornerRadius = 14.0
-        self.closeButtonBluredBackgroundView.clipsToBounds = true
-        
-        self.addSubnode(closeWhiteTextNode)
-        
-        self.view.addSubview(self.closeButtonFilledBackgoundView)
-        self.closeButtonFilledBackgoundView.layer.cornerRadius = 14.0
-        self.closeButtonFilledBackgoundView.clipsToBounds = true
-        self.closeButtonFilledBackgoundView.backgroundColor = UIColor.white
-        
-        self.addSubnode(closeButtonNode)
-        
+        // Rate This Call
         self.addSubnode(titleNode)
+        self.titleNode.attributedText = NSAttributedString(
+            string: "Rate This Call", // TODO: Strings
+            font: Font.bold(16.0),
+            textColor: UIColor.white,
+            paragraphAlignment: .center
+        )
+        
+        // Please rate the quality of this call.
         self.addSubnode(subtitleNode)
-        self.addSubnode(starContainerNode)
-        self.addSubnode(closePurpleTextNode)
-        self.addSubnode(animationStarNode)
+        self.subtitleNode.attributedText = NSAttributedString(
+            string: "Please rate the quality of this call.", // TODO: Strings
+            font: Font.regular(16.0),
+            textColor: UIColor.white,
+            paragraphAlignment: .center
+        )
         
         // Stars
+        self.addSubnode(starContainerNode)
         for node in self.starNodes {
             starContainerNode.addSubnode(node)
             
@@ -107,49 +99,29 @@ final class CallRatingNode: ASDisplayNode {
             node.setImage(highlighted, for: [.selected])
             node.setImage(highlighted, for: [.selected, .highlighted])
         }
-
-        self.titleNode.attributedText = NSAttributedString(
-            string: "Rate This Call", // TODO: Strings
-            font: Font.bold(16.0),
-            textColor: UIColor.white,
-            paragraphAlignment: .center
-        )
-
-        self.subtitleNode.attributedText = NSAttributedString(
-            string: "Please rate the quality of this call.", // TODO: Strings
-            font: Font.regular(16.0),
-            textColor: UIColor.white,
-            paragraphAlignment: .center
-        )
         
-        self.closeWhiteTextNode.attributedText = NSAttributedString(
-            string: "Close", // TODO: Strings
-            font: Font.regular(17.0),
-            textColor: UIColor.white,
-            paragraphAlignment: .center
-        )
-        self.closeWhiteTextNode.isUserInteractionEnabled = false
-        
-        self.closePurpleTextNode.attributedText = NSAttributedString(
-            string: "Close", // TODO: Strings
-            font: Font.regular(17.0),
-            textColor: UIColor(rgb: 0xFF7261DA),
-            paragraphAlignment: .center
-        )
-        self.closePurpleTextNode.isUserInteractionEnabled = false
-        
-        self.closeButtonNode.addTarget(
-            self,
-            action: #selector(self.close),
-            forControlEvents: .touchUpInside
-        )
-        
+        // Stars well animation effect
+        self.addSubnode(animationStarNode)
         self.animationStarNode.setup(
             source: AnimatedStickerNodeLocalFileSource(name: "RateStars"),
             width: 64,
             height: 64,
             playbackMode: .loop,
             mode: .direct(cachePathPrefix: nil)
+        )
+        
+        // Close
+        self.addSubnode(closeButtonNode)
+        self.closeButtonNode.animationCompletion = { [weak self] in
+            if self?.rating != nil {
+                self?.onClose()
+            }
+        }
+        self.closeButtonNode.view.addGestureRecognizer(
+            UITapGestureRecognizer(
+                target: self,
+                action: #selector(close)
+            )
         )
     }
     
@@ -274,89 +246,7 @@ final class CallRatingNode: ASDisplayNode {
             frame: closeButtonFrame
         )
         
-        let closeSize = self.closePurpleTextNode.measure(closeButtonFrame.size)
-        
-        transition.updateFrame(
-            node: self.closeWhiteTextNode,
-            frame: .init(
-                x: floor(closeButtonFrame.maxX - closeSize.width) / 2,
-                y: floor(closeButtonFrame.maxY - closeSize.height) / 2,
-                width: closeButtonFrame.size.width,
-                height: closeButtonFrame.size.height
-            )
-        )
-        
-        transition.updateFrame(
-            node: self.closePurpleTextNode,
-            frame: .init(
-                x: floor(closeButtonFrame.maxX - closeSize.width) / 2,
-                y: floor(closeButtonFrame.maxY - closeSize.height) / 2,
-                width: closeButtonFrame.size.width,
-                height: closeButtonFrame.size.height
-            )
-        )
-        
-        let showingBluredTransition = ContainedViewLayoutTransition.animated(
-            duration: 0.3,
-            curve: .slide
-        )
-        
-        showingBluredTransition.animateFrame(
-            layer: closeButtonBluredBackgroundView.layer,
-            from: .init(
-                x: closeButtonFrame.maxX,
-                y: closeButtonFrame.origin.y,
-                width: 0.0,
-                height: closeButtonFrame.height
-            ),
-            to: closeButtonFrame,
-            completion: { [weak self] _ in
-                self?.closeButtonBluredBackgroundView.frame = closeButtonFrame
-            }
-        )
-        
-        let showingFilledTransition = ContainedViewLayoutTransition.animated(
-            duration: 0.4,
-            curve: .slide
-        )
-        
-        showingFilledTransition.animateFrame(
-            layer: closeButtonFilledBackgoundView.layer,
-            from: .init(
-                x: closeButtonFrame.maxX,
-                y: closeButtonFrame.origin.y,
-                width: 0.0,
-                height: closeButtonFrame.height
-            ),
-            to: closeButtonFrame,
-            completion: { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                self.closeButtonFilledBackgoundView.frame = closeButtonFrame
-                
-                let closingTransition = ContainedViewLayoutTransition.animated(
-                    duration: 8.0,
-                    curve: .linear
-                )
-                closingTransition.animateFrame(
-                    layer: self.closeButtonFilledBackgoundView.layer,
-                    from: closeButtonFrame,
-                    to: .init(
-                        x: closeButtonFrame.maxX,
-                        y: closeButtonFrame.minY,
-                        width: 0.0,
-                        height: closeButtonFrame.height
-                    ),
-                    completion: { [weak self] _ in
-                        self?.closeButtonFilledBackgoundView.removeFromSuperview()
-                        if self?.rating == nil {
-                            self?.onClose()
-                        }
-                    }
-                )
-            }
-        )
+        self.closeButtonNode.layout(transition: transition)
         
         // Animation of stars
         self.animationStarNode.updateLayout(
@@ -420,14 +310,194 @@ private extension CallRatingNode {
     }
 }
 
-//private final class RatingCloseButton: ASDisplayNode {
-//    
-//    
-//    
-//    override func calculateSizeThatFits(_ constrainedSize: CGSize) -> CGSize {
-//        .init(
-//            width: constrainedSize.width,
-//            height: 50.0
-//        )
-//    }
-//}
+private final class RatingCloseButtonNode: ASDisplayNode {
+    
+    private let closeButtonBluredBackgroundView: UIVisualEffectView
+    private let closeButtonFilledBackgoundView: UIView
+    private let closeWhiteTextNode: ASTextNode
+    private let closePurpleTextNode: ASTextNode
+    
+    var animationCompletion: (() -> Void)?
+    
+    override init() {
+        // INFO: блюр для кнопки
+        self.closeButtonBluredBackgroundView = UIVisualEffectView()
+        self.closeButtonBluredBackgroundView.effect = UIBlurEffect(style: .light)
+        
+        // INFO: анимирующийся белый бекграунд для кнопки
+        self.closeButtonFilledBackgoundView = UIView()
+        self.closeButtonFilledBackgoundView.backgroundColor = .white
+        
+        self.closeWhiteTextNode = ASTextNode()
+        self.closeWhiteTextNode.displaysAsynchronously = false
+        
+        self.closePurpleTextNode = ASTextNode()
+        self.closePurpleTextNode.displaysAsynchronously = false
+        
+        super.init()
+        
+        self.view.addSubview(self.closeButtonBluredBackgroundView)
+        self.closeButtonBluredBackgroundView.layer.cornerRadius = 14.0
+        self.closeButtonBluredBackgroundView.clipsToBounds = true
+        
+        self.addSubnode(closeWhiteTextNode)
+        
+        self.closeWhiteTextNode.attributedText = NSAttributedString(
+            string: "Close", // TODO: Strings
+            font: Font.regular(17.0),
+            textColor: UIColor.white,
+            paragraphAlignment: .left
+        )
+        
+        self.view.addSubview(self.closeButtonFilledBackgoundView)
+        self.closeButtonFilledBackgoundView.layer.cornerRadius = 14.0
+        self.closeButtonFilledBackgoundView.clipsToBounds = true
+        
+        self.addSubnode(closePurpleTextNode)
+        self.closePurpleTextNode.attributedText = NSAttributedString(
+            string: "Close", // TODO: Strings
+            font: Font.regular(17.0),
+            textColor: UIColor(rgb: 0xFF7261DA),
+            paragraphAlignment: .right
+        )
+    }
+    
+    override func calculateSizeThatFits(_ constrainedSize: CGSize) -> CGSize {
+        .init(
+            width: constrainedSize.width,
+            height: 50.0
+        )
+    }
+    
+    func layout(transition: ContainedViewLayoutTransition) {
+        let closeButtonFrame = CGRect(
+            origin: .zero,
+            size: frame.size
+        )
+        
+        let closeSize = self.closePurpleTextNode.measure(
+            .init(
+                width: CGFloat.greatestFiniteMagnitude,
+                height: CGFloat.greatestFiniteMagnitude
+            )
+        )
+        
+        // INFO: обновляем фрейм у лейбла белого текста
+        transition.updateFrame(
+            node: self.closeWhiteTextNode,
+            frame: .init(
+                x: floor(closeButtonFrame.width - closeSize.width) / 2,
+                y: floor(closeButtonFrame.height - closeSize.height) / 2,
+                width: closeSize.width,
+                height: closeSize.height
+            )
+        )
+        
+        // INFO: обновляем фрейм у лейбла фиолетового текста
+        transition.updateFrame(
+            node: self.closePurpleTextNode,
+            frame: .init(
+                x: floor(closeButtonFrame.width - closeSize.width) / 2,
+                y: floor(closeButtonFrame.height - closeSize.height) / 2,
+                width: closeSize.width,
+                height: closeSize.height
+            )
+        )
+        
+        // INFO: настраиваем анимацию у заблюренной части
+        let showingBluredTransition = ContainedViewLayoutTransition.animated(
+            duration: 0.4,
+            curve: .slide
+        )
+        
+        // INFO: анимируем заблюренную часть
+        showingBluredTransition.animateFrame(
+            layer: closeButtonBluredBackgroundView.layer,
+            from: .init(
+                x: closeButtonFrame.maxX,
+                y: closeButtonFrame.origin.y,
+                width: 0.0,
+                height: closeButtonFrame.height
+            ),
+            to: closeButtonFrame,
+            completion: { [weak self] _ in
+                self?.closeButtonBluredBackgroundView.frame = closeButtonFrame
+            }
+        )
+        
+        // INFO: настраиваем анимацию у белой части
+        let showingFilledTransition = ContainedViewLayoutTransition.animated(
+            duration: 0.5,
+            curve: .slide
+        )
+        
+        // INFO: анимируем белую часть
+        showingFilledTransition.animateFrame(
+            layer: closeButtonFilledBackgoundView.layer,
+            from: .init(
+                x: closeButtonFrame.maxX,
+                y: closeButtonFrame.origin.y,
+                width: 0.0,
+                height: closeButtonFrame.height
+            ),
+            to: closeButtonFrame,
+            completion: { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                self.closeButtonFilledBackgoundView.frame = closeButtonFrame
+                
+                let closingTransition = ContainedViewLayoutTransition.animated(
+                    duration: 8.0,
+                    curve: .linear
+                )
+                closingTransition.animateFrame(
+                    layer: self.closeButtonFilledBackgoundView.layer,
+                    from: closeButtonFrame,
+                    to: .init(
+                        x: closeButtonFrame.maxX,
+                        y: closeButtonFrame.origin.y,
+                        width: 0.0,
+                        height: closeButtonFrame.height
+                    ),
+                    completion: { [weak self] _ in
+                        self?.closeButtonFilledBackgoundView.removeFromSuperview()
+                        self?.animationCompletion?()
+                    }
+                )
+                
+                // Animation of change color
+                
+                // TODO: передалать градиентность цветов
+                
+                let gradientLayer = CAGradientLayer()
+                gradientLayer.frame = self.closePurpleTextNode.bounds
+                gradientLayer.colors = [
+                    UIColor.clear.cgColor,
+                    UIColor(rgb: 0xFF7261DA).cgColor
+                ]
+                gradientLayer.startPoint = CGPoint(x: -1.0, y: 1.0)
+                gradientLayer.endPoint = CGPoint(x: 1.0, y: 1.0)
+
+                let gradientAnimation = CABasicAnimation(keyPath: "startPoint")
+                gradientAnimation.beginTime = CACurrentMediaTime() + 3.0
+                gradientAnimation.fromValue = gradientLayer.startPoint
+                gradientAnimation.toValue = gradientLayer.endPoint
+                gradientAnimation.duration = 1.6
+                gradientAnimation.delegate = self
+
+                gradientLayer.add(gradientAnimation, forKey: "startPoint")
+
+                self.closePurpleTextNode.layer.mask = gradientLayer
+            }
+        )
+    }
+}
+
+extension RatingCloseButtonNode: CAAnimationDelegate {
+    
+    func animationDidStop(_ anim: CAAnimation, finished flag: Bool) {
+        self.closePurpleTextNode.layer.mask = nil
+        self.closePurpleTextNode.removeFromSupernode()
+    }
+}
