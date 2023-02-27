@@ -309,6 +309,7 @@ func rateCallAndSendLogs(engine: TelegramEngine, callId: CallId, starsCount: Int
     }
 }
 
+// INFO: старый контроллер для рейтинга
 public func callRatingController(sharedContext: SharedAccountContext, account: Account, callId: CallId, userInitiated: Bool, isVideo: Bool, present: @escaping (ViewController, Any) -> Void, push: @escaping (ViewController) -> Void) -> AlertController {
     let presentationData = sharedContext.currentPresentationData.with { $0 }
     let theme = presentationData.theme

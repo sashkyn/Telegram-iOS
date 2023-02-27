@@ -138,6 +138,7 @@ public final class CallController: ViewController {
         if self.call.isVideoPossible {
             self.displayNode = CallControllerNode(sharedContext: self.sharedContext, account: self.account, presentationData: self.presentationData, statusBar: self.statusBar, debugInfo: self.call.debugInfo(), shouldStayHiddenUntilConnection: !self.call.isOutgoing && self.call.isIntegratedWithCallKit, easyDebugAccess: self.easyDebugAccess, call: self.call)
         } else {
+            // INFO: если видео невозможно используется другой Node
             self.displayNode = LegacyCallControllerNode(sharedContext: self.sharedContext, account: self.account, presentationData: self.presentationData, statusBar: self.statusBar, debugInfo: self.call.debugInfo(), shouldStayHiddenUntilConnection: !self.call.isOutgoing && self.call.isIntegratedWithCallKit, easyDebugAccess: self.easyDebugAccess, call: self.call)
         }
         self.displayNodeDidLoad()
@@ -230,8 +231,7 @@ public final class CallController: ViewController {
         self.controllerNode.back = { [weak self] in
             let _ = self?.dismiss()
         }
-        
-        // INFO: Вызов окошка о рейтинге. Нужно убрать это и сделать внутри CallNode
+
         self.controllerNode.presentCallRating = { [weak self] callId, isVideo in
             if let strongSelf = self, !strongSelf.presentedCallRating {
                 strongSelf.presentedCallRating = true

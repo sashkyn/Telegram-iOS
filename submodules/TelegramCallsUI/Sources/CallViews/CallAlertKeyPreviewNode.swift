@@ -80,7 +80,7 @@ final class CallAlertKeyPreviewNode: ASDisplayNode {
         self.separatorButtonNode.backgroundColor = UIColor.black.withAlphaComponent(0.4)
         
         self.okButtonNode.setTitle(
-            "OK",
+            "OK", // TODO: Strings
             with: Font.regular(20.0),
             with: UIColor.white,
             for: .normal

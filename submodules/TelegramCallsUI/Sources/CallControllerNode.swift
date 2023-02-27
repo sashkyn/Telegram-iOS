@@ -408,6 +408,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     private let toastNode: CallControllerToastContainerNode
     private let buttonsNode: CallControllerButtonsNode
     private var keyPreviewNode: CallAlertKeyPreviewNode?
+    private var ratingNode: CallRatingNode?
     
     private var debugNode: CallDebugNode?
     
@@ -803,33 +804,12 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     func updatePeer(accountPeer: Peer, peer: Peer, hasOther: Bool) {
         if !arePeersEqual(self.peer, peer) {
             self.peer = peer
-            if let peerReference = PeerReference(peer), !peer.profileImageRepresentations.isEmpty {
-                let representations: [ImageRepresentationWithReference] = peer.profileImageRepresentations.map {
-                    ImageRepresentationWithReference(
-                        representation: $0,
-                        reference: .avatar(peer: peerReference, resource: $0.resource)
-                    )
-                }
-                print(representations)
-                self.avatarNode.updateData(
-                    peer: peer,
-                    account: self.account,
-                    sharedAccountContext: self.sharedContext
-                )
-                
-                // INFO: Здесь сетается аватарка пользователя на бекграунд
-//                self.imageNode.setSignal(
-//                    chatAvatarGalleryPhoto(
-//                        account: self.account,
-//                        representations: representations,
-//                        immediateThumbnailData: nil,
-//                        autoFetchFullSize: true
-//                    )
-//                )
-                self.videoDimNode.isHidden = false
-            } else {
-                self.videoDimNode.isHidden = true
-            }
+            self.avatarNode.updateData(
+                peer: peer,
+                account: self.account,
+                sharedAccountContext: self.sharedContext
+            )
+            self.videoDimNode.isHidden = false
             
             self.toastNode.title = EnginePeer(peer).compactDisplayTitle
             
@@ -1213,12 +1193,42 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             }
         }
         
-        if case let .terminated(id, _, reportRating) = callState.state, let callId = id {
-            let presentRating = reportRating || self.forceReportRating
+        if case let .terminated(id, _, reportRating) = callState.state,
+           let callId = id {
+            
+            // INFO: reportRating - булка для вызова рейтинга от сервара
+            print(callId)
+            print(reportRating)
+            
+            //let presentRating = reportRating || self.forceReportRating
+            let presentRating = true
+            
             if presentRating {
-                self.presentCallRating?(callId, self.call.isVideo)
+                if ratingNode == nil {
+                    self.avatarNode.update(audioBlobState: .disabled)
+                    self.buttonsNode.isHidden = true
+                    
+                    let ratingNode = CallRatingNode(
+                        onClose: { [weak self] in
+                            print("TODO: call rating: close call")
+                            self?.callEnded?(true)
+                        },
+                        onRating: { rating in print("TODO: call rating: rating \(rating)") }
+                    )
+                    self.ratingNode = ratingNode
+                    self.containerNode.addSubnode(ratingNode)
+                    
+                    if let (layout, navigationHeight) = self.validLayout {
+                        self.containerLayoutUpdated(
+                            layout,
+                            navigationBarHeight: navigationHeight,
+                            transition: .immediate
+                        )
+                    }
+                }
+            } else {
+//                self.callEnded?(true)
             }
-            self.callEnded?(presentRating)
         }
         
         let hasIncomingVideoNode = self.incomingVideoNodeValue != nil && self.expandedVideoNode === self.incomingVideoNodeValue
@@ -1636,11 +1646,34 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         transition.updateAlpha(node: self.videoDimNode, alpha: pinchTransitionAlpha)
         transition.updateFrame(node: self.videoDimNode, frame: containerFullScreenFrame)
         
-        if let keyPreviewNode = self.keyPreviewNode {
+        if let keyPreviewNode {
             transition.updateFrame(node: keyPreviewNode, frame: containerFullScreenFrame)
             keyPreviewNode.updateLayout(
                 size: layout.size,
                 topOffset: self.avatarNode.frame.minY - 80,
+                transition: .immediate
+            )
+        }
+        
+        if let ratingNode {
+            self.avatarNode.update(audioBlobState: .disabled)
+            
+            let rect = CGRect(
+                origin: .init(
+                    x: 0.0,
+                    y: nameAndStatusNode.frame.maxY + 50.0
+                ),
+                size: .init(
+                    width: containerFullScreenFrame.width,
+                    height: containerFullScreenFrame.height - nameAndStatusNode.frame.maxY - 50 - 50 // 50 небольшой инсет
+                )
+            )
+            transition.updateFrame(
+                node: ratingNode,
+                frame: containerFullScreenFrame
+            )
+            ratingNode.updateLayout(
+                constaintedRect: rect,
                 transition: .immediate
             )
         }
