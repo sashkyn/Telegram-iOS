@@ -24,6 +24,7 @@ protocol CallControllerNodeProtocol: AnyObject {
     var endCall: (() -> Void)? { get set }
     var back: (() -> Void)? { get set }
     var presentCallRating: ((CallId, Bool) -> Void)? { get set }
+    var rateCall: ((CallId, Bool, Int) -> Void)? { get set }
     var present: ((ViewController) -> Void)? { get set }
     var callEnded: ((Bool) -> Void)? { get set }
     var dismissedInteractively: (() -> Void)? { get set }
@@ -35,6 +36,8 @@ protocol CallControllerNodeProtocol: AnyObject {
     
     func animateIn()
     func animateOut(completion: @escaping () -> Void)
+    func animateOutIfNotRating(completion: @escaping () -> Void)
+    
     func expandFromPipIfPossible()
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition)
@@ -229,7 +232,37 @@ public final class CallController: ViewController {
         }
         
         self.controllerNode.back = { [weak self] in
-            let _ = self?.dismiss()
+            self?.dismiss()
+        }
+        
+        self.controllerNode.rateCall = { [weak self] callId, isVideo, rating in
+            guard let self else { return }
+            
+            // TODO: сделать колбек на вызов этого контроллера с фидбеком
+//            if rating < 4 {
+//
+//                //self.push(callFeedbackController(sharedContext: self.sharedContext, account: self.account, callId: callId, rating: rating, userInitiated: false, isVideo: isVideo))
+//            } else {
+//                let _ = rateCallAndSendLogs(
+//                    engine: TelegramEngine(account: self.account),
+//                    callId: callId,
+//                    starsCount: rating,
+//                    comment: "",
+//                    userInitiated: false,
+//                    includeLogs: false
+//                ).start()
+//                print("call rating: rating successfully sent - \(rating)")
+//            }
+            
+            let _ = rateCallAndSendLogs(
+                engine: TelegramEngine(account: self.account),
+                callId: callId,
+                starsCount: rating,
+                comment: "",
+                userInitiated: false,
+                includeLogs: false
+            ).start()
+            print("call rating: rating successfully sent - \(rating)")
         }
 
         self.controllerNode.presentCallRating = { [weak self] callId, isVideo in
@@ -346,8 +379,18 @@ public final class CallController: ViewController {
         self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
     }
     
+    // TODO: разобраться с LegacyController-ом
     override public func dismiss(completion: (() -> Void)? = nil) {
         self.controllerNode.animateOut(completion: { [weak self] in
+            self?.didPlayPresentationAnimation = false
+            self?.presentingViewController?.dismiss(animated: false, completion: nil)
+            
+            completion?()
+        })
+    }
+    
+    public func waitRatingAndDismiss(completion: (() -> Void)? = nil) {
+        self.controllerNode.animateOutIfNotRating(completion: { [weak self] in
             self?.didPlayPresentationAnimation = false
             self?.presentingViewController?.dismiss(animated: false, completion: nil)
             

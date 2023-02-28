@@ -664,8 +664,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                 if let strongSelf = self {
                     if call !== strongSelf.callController?.call {
                         // INFO: здесь раньше происходило закрытие контроллера
-                        //strongSelf.callController?.dismiss()
-                        //strongSelf.callController = nil
+                        
+                        strongSelf.callController?.waitRatingAndDismiss()
+                        strongSelf.callController = nil
                         strongSelf.hasOngoingCall.set(false)
                         
                         if let call = call {

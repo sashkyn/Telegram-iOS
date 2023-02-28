@@ -8,7 +8,6 @@ import TelegramCore
 import AccountContext
 import AudioBlob
 
-// INFO: Это аватар с блобом уже?))
 public final class AnimatedAvatarSetContext {
     public final class Content {
         fileprivate final class Item {

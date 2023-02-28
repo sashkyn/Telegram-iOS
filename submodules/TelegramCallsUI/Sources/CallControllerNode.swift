@@ -45,7 +45,7 @@ private final class CallVideoNode: ASDisplayNode, PreviewVideoNode {
     var ready: Signal<Bool, NoError> {
         return self.readyPromise.get()
     }
-    
+
     private let isFlippedUpdated: (CallVideoNode) -> Void
     
     private(set) var currentOrientation: PresentationCallVideoView.Orientation
@@ -444,6 +444,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     var endCall: (() -> Void)?
     var back: (() -> Void)?
     var presentCallRating: ((CallId, Bool) -> Void)?
+    var rateCall: ((CallId, Bool, Int) -> Void)?
     var callEnded: ((Bool) -> Void)?
     var dismissedInteractively: (() -> Void)?
     var present: ((ViewController) -> Void)?
@@ -1195,13 +1196,12 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         
         if case let .terminated(id, _, reportRating) = callState.state,
            let callId = id {
-            
-            // INFO: reportRating - булка для вызова рейтинга от сервара
-            print(callId)
             print(reportRating)
             
-            //let presentRating = reportRating || self.forceReportRating
-            let presentRating = true
+            // INFO: Здесь можно вызвать рейтинг всегда
+            
+            let presentRating = reportRating || self.forceReportRating
+            //let presentRating = true
             
             if presentRating {
                 if ratingNode == nil {
@@ -1210,10 +1210,18 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                     
                     let ratingNode = CallRatingNode(
                         onClose: { [weak self] in
-                            print("TODO: call rating: close call")
-                            self?.callEnded?(true)
+                            print("call rating: onClose")
+                            self?.callEnded?(false)
+                            self?.back?()
                         },
-                        onRating: { rating in print("TODO: call rating: rating \(rating)") }
+                        onRating: { [weak self] rating in
+                            print("call rating: onRating - \(rating)")
+                            guard let self else {
+                                return
+                            }
+                            self.rateCall?(callId, self.call.isVideo, rating)
+                            
+                        }
                     )
                     self.ratingNode = ratingNode
                     self.containerNode.addSubnode(ratingNode)
@@ -1227,7 +1235,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                     }
                 }
             } else {
-//                self.callEnded?(true)
+                self.callEnded?(false)
             }
         }
         
@@ -1438,6 +1446,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         }
     }
     
+    // INFO: анимация закрытия контроллера
     func animateOut(completion: @escaping () -> Void) {
         self.statusBar.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.3, removeOnCompletion: false)
         if !self.shouldStayHiddenUntilConnection || self.containerNode.alpha > 0.0 {
@@ -1450,6 +1459,14 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             })
         } else {
             completion()
+        }
+    }
+    
+    // INFO: анимация закрытия контроллера если рейтинга нету
+    func animateOutIfNotRating(completion: @escaping () -> Void) {
+        guard ratingNode != nil else {
+            animateOut(completion: completion)
+            return
         }
     }
     

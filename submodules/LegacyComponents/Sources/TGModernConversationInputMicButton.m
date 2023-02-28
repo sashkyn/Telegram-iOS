@@ -147,7 +147,6 @@ static const CGFloat outerCircleMinScale = innerCircleRadius / outerCircleRadius
 
 @end
 
-// INFO: вот тот самый Bubble button
 @implementation TGModernConversationInputMicButton
 
 - (void)setFadeDisabled:(bool)fadeDisabled {

@@ -24,6 +24,8 @@ final class CallRatingNode: ASDisplayNode {
     private let onClose: () -> Void
     private let onRating: (Int) -> Void
     
+    private var validLayout: CGRect? = nil
+    
     init(
         onClose: @escaping () -> Void,
         onRating: @escaping (Int) -> Void
@@ -113,9 +115,7 @@ final class CallRatingNode: ASDisplayNode {
         // Close
         self.addSubnode(closeButtonNode)
         self.closeButtonNode.animationCompletion = { [weak self] in
-            if self?.rating != nil {
-                self?.onClose()
-            }
+            self?.onClose()
         }
         self.closeButtonNode.view.addGestureRecognizer(
             UITapGestureRecognizer(
@@ -125,10 +125,20 @@ final class CallRatingNode: ASDisplayNode {
         )
     }
     
+    deinit {
+        print("call rating - deinit")
+    }
+    
     func updateLayout(
         constaintedRect: CGRect,
         transition: ContainedViewLayoutTransition
     ) {
+        guard validLayout == nil else {
+            return
+        }
+        
+        self.validLayout = constaintedRect
+        
         // Rate background
         let size = constaintedRect.size
         
@@ -278,30 +288,25 @@ private extension CallRatingNode {
         }
         self.didTapOnStarOnce = true
         
-        if let index = self.starNodes.firstIndex(of: sender) {
-            self.rating = index + 1
-            for i in 0 ..< self.starNodes.count {
-                let node = self.starNodes[i]
-                node.isSelected = i <= index
+        onRating(rating)
+        if rating > 3 {
+            let starRect = sender.convert(sender.bounds, to: self)
+            let point = CGPoint(
+                x: starRect.midX - 32,
+                y: starRect.midY - 32
+            )
+            self.animationStarNode.frame = CGRect(
+                origin: point,
+                size: .init(width: 64.0, height: 64.0)
+            )
+            self.animationStarNode.playOnce()
+            self.animationStarNode.completed = { [weak self] bool in
+                guard let self else { return }
+                
+                self.onClose()
             }
-            
-            if rating > 3 {
-                let starRect = sender.convert(sender.bounds, to: self)
-                let point = CGPoint(
-                    x: starRect.midX - 32,
-                    y: starRect.midY - 32
-                )
-                self.animationStarNode.frame = CGRect(
-                    origin: point,
-                    size: .init(width: 64.0, height: 64.0)
-                )
-                self.animationStarNode.playOnce()
-                self.animationStarNode.completed = { [weak self] bool in
-                    self?.onRating(rating)
-                }
-            } else {
-                onRating(rating)
-            }
+        } else {
+            onClose()
         }
     }
     
@@ -369,7 +374,15 @@ private final class RatingCloseButtonNode: ASDisplayNode {
         )
     }
     
+    private var didLayouted: Bool = false
+    
     func layout(transition: ContainedViewLayoutTransition) {
+        guard !didLayouted else {
+            return
+        }
+        self.didLayouted = true
+        
+        print("call rating: close button layout")
         let closeButtonFrame = CGRect(
             origin: .zero,
             size: frame.size
@@ -498,6 +511,7 @@ extension RatingCloseButtonNode: CAAnimationDelegate {
     
     func animationDidStop(_ anim: CAAnimation, finished flag: Bool) {
         self.closePurpleTextNode.layer.mask = nil
+        self.closePurpleTextNode.isHidden = true
         self.closePurpleTextNode.removeFromSupernode()
     }
 }

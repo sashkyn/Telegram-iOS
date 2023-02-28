@@ -61,6 +61,7 @@ final class LegacyCallControllerNode: ASDisplayNode, CallControllerNodeProtocol 
     var endCall: (() -> Void)?
     var setIsVideoPaused: ((Bool) -> Void)?
     var back: (() -> Void)?
+    var rateCall: ((CallId, Bool, Int) -> Void)?
     var presentCallRating: ((CallId, Bool) -> Void)?
     var callEnded: ((Bool) -> Void)?
     var dismissedInteractively: (() -> Void)?
@@ -366,6 +367,10 @@ final class LegacyCallControllerNode: ASDisplayNode, CallControllerNodeProtocol 
         } else {
             completion()
         }
+    }
+    
+    func animateOutIfNotRating(completion: @escaping () -> Void) {
+        animateOut(completion: completion)
     }
     
     func expandFromPipIfPossible() {
