@@ -8,6 +8,8 @@ import AccountContext
 import AnimatedStickerNode
 import TelegramCore
 import TelegramAnimatedStickerNode
+import ShimmerEffect
+import StickerResources
 
 // TODO: сделать анимированные эмодзи
 
@@ -74,6 +76,7 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
 //            }
 //        }
         
+        // INFO:
         accountContext.animatedEmojiStickers.keys.shuffled().prefix(4).forEach { emojiKey in
             if let file = accountContext.animatedEmojiStickers["\(emojiKey)"]?.first?.file {
                 files.append(file)
@@ -129,47 +132,10 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
         self.addSubnode(self.separatorButtonNode)
         self.addSubnode(self.okButtonNode)
         self.addSubnode(self.animatedKeysStickerContainer)
-        
-        // INFO: работа с анимированными эмоджи
-        
-//        self.disposable.set((source.directDataPath(attemptSynchronously: false)
-//        |> filter { $0 != nil }
-//        |> deliverOnMainQueue).start(next: { path in
-//            print("sticker - path = \(path ?? "nil")")
-//            return f(path!)
-//        }))
 
         animatedStickerFiles.forEach { file in
-            let animatedEmojiNode = DefaultAnimatedStickerNodeImpl()
-            let dimensions = file.dimensions ?? PixelDimensions(width: 512, height: 512)
-            let fittedSize = dimensions.cgSize.aspectFilled(CGSize(width: 48.0, height: 48.0))
-            let pathPrefix = accountContext.account.postbox.mediaBox.shortLivedResourceCachePathPrefix(file.resource.id)
-            
-            animatedEmojiNode.setup(
-                source: AnimatedStickerResourceSource(
-                    account: accountContext.account,
-                    resource: file.resource,
-                    fitzModifier: nil,
-                    isVideo: false
-                ),
-                width: Int(fittedSize.width),
-                height: Int(fittedSize.height),
-                playbackMode: .once,
-                mode: .direct(cachePathPrefix: pathPrefix)
-            )
-            
-            self.disposable.add(
-                freeMediaFileResourceInteractiveFetched(
-                    account: accountContext.account,
-                    userLocation: .other,
-                    fileReference: stickerPackFileReference(file),
-                    resource: file.resource
-                )
-                .start(next: { element in
-                    print("call emoji preview: \(element)")
-                })
-            )
-            self.animatedKeysStickerContainer.addSubnode(animatedEmojiNode)
+            let stickerNode = StickerNode(context: accountContext, file: file, forceIsPremium: false)
+            self.animatedKeysStickerContainer.addSubnode(stickerNode)
         }
     }
     
@@ -231,7 +197,7 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
             )
             
             animatedKeysStickerContainer.subnodes?
-                .compactMap { $0 as? AnimatedStickerNode }
+                .compactMap { $0 as? StickerNode }
                 .enumerated()
                 .forEach { index, node in
                     let frame = CGRect(
@@ -246,10 +212,14 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
                         frame: frame
                     )
                     
-                    node.updateLayout(size: frame.size)
-                    node.playOnce()
+                    node.updateLayout(
+                        size: frame.size,
+                        transition: .immediate
+                    )
+                    node.setVisible(true)
                 }
         } else {
+            // Static Key
             transition.updateFrame(
                 node: self.keyTextNode,
                 frame: keyTextFrame
@@ -333,6 +303,154 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
     @objc func tapGesture(_ recognizer: UITapGestureRecognizer) {
         if case .ended = recognizer.state {
             self.dismiss()
+        }
+    }
+}
+
+private let itemSize = CGSize(width: 48.0, height: 48.0)
+
+private class StickerNode: ASDisplayNode {
+    private let context: AccountContext
+    private let file: TelegramMediaFile
+    
+    public var imageNode: TransformImageNode
+    public var animationNode: AnimatedStickerNode
+    
+    private var placeholderNode: StickerShimmerEffectNode
+    
+    private let disposable = MetaDisposable()
+    private let effectDisposable = MetaDisposable()
+    
+    private var setupTimestamp: Double?
+    
+    init(context: AccountContext, file: TelegramMediaFile, forceIsPremium: Bool) {
+        self.context = context
+        self.file = file
+        
+        self.imageNode = TransformImageNode()
+    
+        let animationNode = DefaultAnimatedStickerNodeImpl()
+        //let animationNode = DirectAnimatedStickerNode()
+        animationNode.automaticallyLoadFirstFrame = true
+        self.animationNode = animationNode
+        
+        let dimensions = file.dimensions ?? PixelDimensions(width: 512, height: 512)
+        let fittedDimensions = dimensions.cgSize.aspectFitted(CGSize(width: 240.0, height: 240.0))
+        
+        let pathPrefix = context.account.postbox.mediaBox.shortLivedResourceCachePathPrefix(file.resource.id)
+        animationNode.setup(source: AnimatedStickerResourceSource(account: self.context.account, resource: file.resource, isVideo: file.isVideoSticker), width: Int(fittedDimensions.width * 1.6), height: Int(fittedDimensions.height * 1.6), playbackMode: .once, mode: .direct(cachePathPrefix: pathPrefix))
+        
+        self.imageNode.setSignal(chatMessageAnimatedSticker(postbox: context.account.postbox, userLocation: .other, file: file, small: false, size: fittedDimensions))
+        
+        self.disposable.set(
+            freeMediaFileResourceInteractiveFetched(
+                account: self.context.account,
+                userLocation: .other,
+                fileReference: stickerPackFileReference(file),
+                resource: file.resource
+            )
+            .start()
+        )
+        
+        self.placeholderNode = StickerShimmerEffectNode()
+        
+        super.init()
+        
+        self.isUserInteractionEnabled = false
+        
+        self.addSubnode(self.imageNode)
+        self.addSubnode(self.animationNode)
+        
+        self.addSubnode(self.placeholderNode)
+        
+        var firstTime = true
+        self.imageNode.imageUpdated = { [weak self] image in
+            guard let strongSelf = self else {
+                return
+            }
+            if image != nil {
+                strongSelf.removePlaceholder(animated: !firstTime)
+            }
+            firstTime = false
+        }
+            
+        animationNode.started = { [weak self] in
+            guard let strongSelf = self else {
+                return
+            }
+            
+            strongSelf.imageNode.alpha = 0.0
+            
+            let current = CACurrentMediaTime()
+            if let setupTimestamp = strongSelf.setupTimestamp, current - setupTimestamp > 0.3 {
+                if !strongSelf.placeholderNode.alpha.isZero {
+                    strongSelf.removePlaceholder(animated: true)
+                }
+            } else {
+                strongSelf.removePlaceholder(animated: false)
+            }
+        }
+    }
+    
+    deinit {
+        self.disposable.dispose()
+        self.effectDisposable.dispose()
+    }
+    
+    private func removePlaceholder(animated: Bool) {
+        if !animated {
+            self.placeholderNode.removeFromSupernode()
+        } else {
+            self.placeholderNode.alpha = 0.0
+            self.placeholderNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, completion: { [weak self] _ in
+                self?.placeholderNode.removeFromSupernode()
+            })
+        }
+    }
+    
+    private var visibility: Bool = false
+    private var centrality: Bool = false
+    
+    public func setCentral(_ central: Bool) {
+        self.centrality = central
+        self.updatePlayback()
+    }
+    
+    public func setVisible(_ visible: Bool) {
+        self.visibility = visible
+        self.updatePlayback()
+        
+        self.setupTimestamp = CACurrentMediaTime()
+    }
+    
+    func updateAbsoluteRect(_ rect: CGRect, within containerSize: CGSize) {
+        if self.placeholderNode.supernode != nil {
+            self.placeholderNode.updateAbsoluteRect(rect, within: containerSize)
+        }
+    }
+    
+    private func updatePlayback() {
+        self.animationNode.visibility = self.visibility
+    }
+    
+    public func updateLayout(size: CGSize, transition: ContainedViewLayoutTransition) {
+        let boundingSize = itemSize
+            
+        if let dimensitons = self.file.dimensions {
+            let imageSize = dimensitons.cgSize.aspectFitted(boundingSize)
+            self.imageNode.asyncLayout()(TransformImageArguments(corners: ImageCorners(), imageSize: imageSize, boundingSize: imageSize, intrinsicInsets: UIEdgeInsets()))()
+            let imageFrame = CGRect(origin: CGPoint(x: floor((size.width - imageSize.width) / 2.0), y: 0.0), size: imageSize)
+            
+            self.imageNode.frame = imageFrame
+            self.animationNode.frame = imageFrame
+            self.animationNode.updateLayout(size: imageSize)
+            
+            if self.placeholderNode.supernode != nil {
+                let placeholderFrame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: imageSize)
+                let thumbnailDimensions = PixelDimensions(width: 512, height: 512)
+                self.placeholderNode.update(backgroundColor: nil, foregroundColor: UIColor(rgb: 0xffffff, alpha: 0.2), shimmeringColor: UIColor(rgb: 0xffffff, alpha: 0.3), data: self.file.immediateThumbnailData, size: placeholderFrame.size, imageSize: thumbnailDimensions.cgSize)
+                self.placeholderNode.frame = placeholderFrame
+            }
         }
     }
 }
