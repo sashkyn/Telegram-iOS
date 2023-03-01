@@ -11,12 +11,11 @@ import TelegramAnimatedStickerNode
 import ShimmerEffect
 import StickerResources
 
-// TODO: сделать анимированные эмодзи
+// TODO: сделать предзагрузку эмодзи
 
 // TODO: сделать динамический style black или light для effectView для видео и нет
 // TODO: сделать анимацию появления и убирания
 // TODO: сделать состояния кнопки ок
-// TODO: пофиксить баг с появлением имени когда показывается алерт
 
 // INFO: вьюшка с эмодзями на полный экран
 final class CallEmojiKeyPreviewNode: ASDisplayNode {
@@ -134,7 +133,7 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
         self.addSubnode(self.animatedKeysStickerContainer)
 
         animatedStickerFiles.forEach { file in
-            let stickerNode = StickerNode(context: accountContext, file: file, forceIsPremium: false)
+            let stickerNode = StickerNode(context: accountContext, file: file)
             self.animatedKeysStickerContainer.addSubnode(stickerNode)
         }
     }
@@ -323,7 +322,7 @@ private class StickerNode: ASDisplayNode {
     
     private var setupTimestamp: Double?
     
-    init(context: AccountContext, file: TelegramMediaFile, forceIsPremium: Bool) {
+    init(context: AccountContext, file: TelegramMediaFile) {
         self.context = context
         self.file = file
         
