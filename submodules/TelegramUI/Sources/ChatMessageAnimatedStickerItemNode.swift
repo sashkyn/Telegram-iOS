@@ -602,6 +602,7 @@ class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             
             if emojiFile == nil {
                 emojiFile = item.associatedData.animatedEmojiStickers[emoji]?.first?.file
+                //print("heheheh - \(item.associatedData.animatedEmojiStickers.keys)")
             }
             if emojiFile == nil {
                 emojiFile = item.associatedData.animatedEmojiStickers[emoji.strippedEmoji]?.first?.file
@@ -629,6 +630,7 @@ class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                     
                     let fillSize = emojiFile.isCustomEmoji ? CGSize(width: 512.0, height: 512.0) : CGSize(width: 384.0, height: 384.0)
                     
+                    // INFO: Вот оно! Тут загрузка вроде и работа с плейсхолдером
                     self.imageNode.setSignal(chatMessageAnimatedSticker(postbox: item.context.account.postbox, userLocation: .peer(item.message.id.peerId), file: emojiFile, small: false, size: dimensions.cgSize.aspectFilled(fillSize), fitzModifier: fitzModifier, thumbnail: false, synchronousLoad: synchronousLoad), attemptSynchronously: synchronousLoad)
                     self.disposable.set(freeMediaFileInteractiveFetched(account: item.context.account, userLocation: .peer(item.message.id.peerId), fileReference: .standalone(media: emojiFile)).start())
                 }
@@ -734,6 +736,7 @@ class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                         let pathPrefix = item.context.account.postbox.mediaBox.shortLivedResourceCachePathPrefix(file.resource.id)
                         let mode: AnimatedStickerMode = .direct(cachePathPrefix: pathPrefix)
                         self.animationSize = fittedSize
+                        // INFO: здесь сетается эмодзи как стикер
                         animationNode.setup(source: AnimatedStickerResourceSource(account: item.context.account, resource: file.resource, fitzModifier: fitzModifier, isVideo: file.mimeType == "video/webm"), width: Int(fittedSize.width), height: Int(fittedSize.height), playbackMode: playbackMode, mode: mode)
                     }
                 }

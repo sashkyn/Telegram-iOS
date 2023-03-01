@@ -369,7 +369,8 @@ public final class DefaultAnimatedStickerNodeImpl: ASDisplayNode, AnimatedSticke
             self.disposable.set((source.directDataPath(attemptSynchronously: false)
             |> filter { $0 != nil }
             |> deliverOnMainQueue).start(next: { path in
-                f(path!)
+                print("sticker - path = \(path ?? "nil")")
+                return f(path!)
             }))
         case .cached:
             self.disposable.set((source.cachedDataPath(width: width, height: height)
@@ -467,6 +468,8 @@ public final class DefaultAnimatedStickerNodeImpl: ASDisplayNode, AnimatedSticke
             let timerHolder = self.timer
             let frameSourceHolder = self.frameSource
             let useMetalCache = self.useMetalCache
+            print("sticker direct data: \(directData != nil)")
+            print("sticker cache data: \(cachedData != nil)")
             self.queue.async { [weak self] in
                 var maybeFrameSource: AnimatedStickerFrameSource? = frameSourceHolder.with { $0 }?.syncWith { $0 }.value
                 if maybeFrameSource == nil {
@@ -572,6 +575,8 @@ public final class DefaultAnimatedStickerNodeImpl: ASDisplayNode, AnimatedSticke
             self.isSetUpForPlayback = true
             let directData = self.directData
             let cachedData = self.cachedData
+            print("sticker direct data: \(directData != nil)")
+            print("sticker cache data: \(cachedData != nil)")
             if directData == nil && cachedData == nil {
                 self.playFromIndex = fromIndex
             }

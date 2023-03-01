@@ -407,7 +407,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     private let nameAndStatusNode: CallControllerStatusNode
     private let toastNode: CallControllerToastContainerNode
     private let buttonsNode: CallControllerButtonsNode
-    private var keyPreviewNode: CallAlertKeyPreviewNode?
+    private var keyPreviewNode: CallEmojiKeyPreviewNode?
     private var ratingNode: CallRatingNode?
     
     private var debugNode: CallDebugNode?
@@ -1908,7 +1908,10 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             self.avatarNode.update(audioBlobState: .disabled)
             self.avatarNode.isHidden = true
             
-            let keyPreviewNode = CallAlertKeyPreviewNode(
+            print(keyText)
+            
+            let keyPreviewNode = CallEmojiKeyPreviewNode(
+                accountContext: self.call.context,
                 keyText: keyText,
                 titleText: "This call is end-to end encrypted", // TODO: Strings
                 infoText: self.presentationData.strings.Call_EmojiDescription(EnginePeer(peer).compactDisplayTitle).string.replacingOccurrences(of: "%%", with: "%"),

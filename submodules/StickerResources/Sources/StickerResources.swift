@@ -48,6 +48,7 @@ public func chatMessageStickerResource(file: TelegramMediaFile, small: Bool) -> 
     return resource
 }
 
+// INFO: вот загрузка стикера или плейсхолдера
 private func chatMessageStickerDatas(postbox: Postbox, userLocation: MediaResourceUserLocation, file: TelegramMediaFile, small: Bool, fetched: Bool, onlyFullSize: Bool, synchronousLoad: Bool) -> Signal<Tuple3<Data?, Data?, Bool>, NoError> {
     let thumbnailResource = chatMessageStickerResource(file: file, small: true)
     let resource = chatMessageStickerResource(file: file, small: small)
