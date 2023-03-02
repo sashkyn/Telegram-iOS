@@ -77,8 +77,6 @@ final class VoiceChatCameraPreviewController: ViewController {
         self.presentationDataDisposable?.dispose()
     }
     
-    // TODO: Доделать!!!
-    
     override public func loadDisplayNode() {
         self.displayNode = VoiceChatCameraPreviewControllerNode(
             controller: self,
@@ -108,15 +106,15 @@ final class VoiceChatCameraPreviewController: ViewController {
     override public func loadView() {
         super.loadView()
     }
-//
-//    override public func viewDidAppear(_ animated: Bool) {
-//        super.viewDidAppear(animated)
-//
-//        if !self.animatedIn {
-//            self.animatedIn = true
-//            self.controllerNode.animateIn()
-//        }
-//    }
+
+    override public func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+
+        if !self.animatedIn {
+            self.animatedIn = true
+            self.controllerNode.animateIn()
+        }
+    }
     
     override public func dismiss(completion: (() -> Void)? = nil) {
         self.controllerNode.animateOut(completion: completion)
@@ -299,6 +297,18 @@ private class VoiceChatCameraPreviewControllerNode: ViewControllerTracingNode, U
         
         self.readyDisposable.set(self.cameraNode.ready.start(next: { [weak self] ready in
             if let strongSelf = self, ready {
+                if let maskLayer = strongSelf.layer.mask {
+                    Queue.mainQueue().async {
+                        strongSelf.isHidden = false
+                        let transition: ContainedViewLayoutTransition = .animated(duration: 0.5, curve: .easeInOut)
+                        transition.updateTransformScale(
+                            layer: maskLayer,
+                            scale: 100,
+                            completion: { _ in strongSelf.layer.mask = nil }
+                        )
+                    }
+                }
+                
                 Queue.mainQueue().after(0.07) {
                     strongSelf.shimmerNode.alpha = 0.0
                     strongSelf.shimmerNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.3)
@@ -367,15 +377,9 @@ private class VoiceChatCameraPreviewControllerNode: ViewControllerTracingNode, U
         let path = CGMutablePath()
         path.addEllipse(in: CGRect(origin: CGPoint(), size: fromRect.size))
         maskLayer.path = path
-        
+
         self.layer.mask = maskLayer
-        
-        let transition: ContainedViewLayoutTransition = .animated(duration: 0.5, curve: .easeInOut)
-        transition.updateTransformScale(
-            layer: maskLayer,
-            scale: 100,
-            completion: { [weak self] _ in self?.layer.mask = nil }
-        )
+        self.isHidden = true
 
         self.applicationStateDisposable = (self.sharedContext.applicationBindings.applicationIsActive
         |> filter { !$0 }
