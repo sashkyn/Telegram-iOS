@@ -26,8 +26,11 @@ final class CallBackgroundNode: ASDisplayNode {
     }
     
     func updateLayout(size: CGSize, completion: @escaping () -> Void) {
+        guard size != validLayout else {
+            return
+        }
         self.validLayout = size
-        print("call gradient: updateLayout")
+        
         self.gradientNode.updateLayout(
             size: size,
             transition: .immediate,
@@ -37,9 +40,9 @@ final class CallBackgroundNode: ASDisplayNode {
         )
     }
     
-    func startSpinning(fromAnimateNext: Bool = false) {
-        print("call gradient: startSpinning - fromAnimateNext = \(fromAnimateNext)")
-        guard fromAnimateNext || (validLayout != nil && spinningState == .stopped) else {
+    func startSpinning(force: Bool = false) {
+        print("call gradient: startSpinning - force = \(force)")
+        guard force || (validLayout != nil && spinningState == .stopped) else {
             gradientNode.layer.removeAllAnimations()
             return
         }
@@ -50,16 +53,21 @@ final class CallBackgroundNode: ASDisplayNode {
             transition: .animated(duration: 0.5, curve: .linear),
             extendAnimation: false,
             backwards: false,
-            completion: { [weak self] in
+            completion: { },
+            animationEnd: { [weak self] in
+                print("call gradient: animation end")
                 if self?.spinningState == .spinning {
-                    // INFO: исправить цикличные вызовы после ухода с экрана на back
-                    self?.startSpinning(fromAnimateNext: true)
+                    self?.startSpinning(force: true)
                 }
             }
         )
     }
     
     func stopSpinning() {
+        guard spinningState != .stopped else {
+            return
+        }
+        
         print("call gradient: stopSpinning")
         spinningState = .stopped
         gradientNode.layer.removeAllAnimations()

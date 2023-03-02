@@ -322,7 +322,14 @@ public final class GradientBackgroundNode: ASDisplayNode {
         }
     }
 
-    public func updateLayout(size: CGSize, transition: ContainedViewLayoutTransition, extendAnimation: Bool, backwards: Bool, completion: @escaping () -> Void) {
+    public func updateLayout(
+        size: CGSize,
+        transition: ContainedViewLayoutTransition,
+        extendAnimation: Bool,
+        backwards: Bool,
+        completion: @escaping () -> Void,
+        animationEnd: @escaping () -> Void = {}
+    ) {
         let sizeUpdated = self.validLayout != size
         self.validLayout = size
 
@@ -437,6 +444,10 @@ public final class GradientBackgroundNode: ASDisplayNode {
                         }
                         
                         completion()
+                        
+                        if value {
+                            animationEnd()
+                        }
                     }
 
                     self.contentView.layer.removeAnimation(forKey: "contents")
@@ -543,7 +554,13 @@ public final class GradientBackgroundNode: ASDisplayNode {
         }
     }
 
-    public func animateEvent(transition: ContainedViewLayoutTransition, extendAnimation: Bool, backwards: Bool, completion: @escaping () -> Void) {
+    public func animateEvent(
+        transition: ContainedViewLayoutTransition,
+        extendAnimation: Bool,
+        backwards: Bool,
+        completion: @escaping () -> Void,
+        animationEnd: @escaping () -> Void = {}
+    ) {
         guard case let .animated(duration, _) = transition, duration > 0.001 else {
             completion()
             return
@@ -562,7 +579,7 @@ public final class GradientBackgroundNode: ASDisplayNode {
             GradientBackgroundNode.sharedPhase = self.phase
         }
         if let size = self.validLayout {
-            self.updateLayout(size: size, transition: transition, extendAnimation: extendAnimation, backwards: backwards, completion: completion)
+            self.updateLayout(size: size, transition: transition, extendAnimation: extendAnimation, backwards: backwards, completion: completion, animationEnd: animationEnd)
         } else {
             completion()
         }

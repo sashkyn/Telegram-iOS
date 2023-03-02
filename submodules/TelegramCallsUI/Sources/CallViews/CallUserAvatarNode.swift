@@ -9,7 +9,7 @@ import AudioBlob
 import Display
 import AnimatedAvatarSetNode
 
-private let avatarFont = avatarPlaceholderFont(size: 12.0)
+private let avatarFont = avatarPlaceholderFont(size: 42.0)
 
 final class CallUserAvatarNode: ASDisplayNode {
     
@@ -37,7 +37,6 @@ final class CallUserAvatarNode: ASDisplayNode {
             context: sharedAccountContext.makeTempAccountContext(account: account),
             peer: EnginePeer(peer),
             placeholderColor: UIColor.black,
-            synchronousLoad: true,
             size: CGSize(width: 136.0, height: 136.0),
             spacing: .zero
         )
@@ -107,7 +106,7 @@ private final class ContentNode: ASDisplayNode {
     
     private var disposable: Disposable?
     
-    init(context: AccountContext, peer: EnginePeer?, placeholderColor: UIColor, synchronousLoad: Bool, size: CGSize, spacing: CGFloat) {
+    init(context: AccountContext, peer: EnginePeer?, placeholderColor: UIColor, size: CGSize, spacing: CGFloat) {
         self.size = size
         self.spacing = spacing
 
@@ -120,7 +119,7 @@ private final class ContentNode: ASDisplayNode {
         self.addSubnode(self.clippedNode)
 
         if let peer = peer {
-            if let representation = peer.largeProfileImage, let signal = peerAvatarImage(account: context.account, peerReference: PeerReference(peer._asPeer()), authorOfMessage: nil, representation: representation, displayDimensions: size, synchronousLoad: synchronousLoad) {
+            if let representation = peer.largeProfileImage, let signal = peerAvatarImage(account: context.account, peerReference: PeerReference(peer._asPeer()), authorOfMessage: nil, representation: representation, displayDimensions: size, synchronousLoad: false) {
                 let image = generateImage(size, rotatedContext: { size, context in
                     context.clear(CGRect(origin: CGPoint(), size: size))
                     context.setFillColor(UIColor.lightGray.cgColor)
@@ -230,7 +229,11 @@ private final class ContentNode: ASDisplayNode {
             
             // INFO: можно использовать для прыгания аватарки
 //            transition.updateSublayerTransformScale(node: self, scale: CGPoint(x: avatarScale, y: avatarScale), beginWithCurrentState: true)
-            transition.updateSublayerTransformScale(layer: audioLevelView.layer, scale: CGPoint(x: audioLevelScale, y: audioLevelScale), beginWithCurrentState: true)
+            transition.updateSublayerTransformScale(
+                layer: audioLevelView.layer,
+                scale: CGPoint(x: audioLevelScale, y: audioLevelScale),
+                beginWithCurrentState: true
+            )
         }
     }
 }

@@ -1322,7 +1322,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         self.nameAndStatusNode.setVisible(nameAndStatusNodeVisible || self.keyPreviewNode != nil, transition: transition)
     }
     
-    private func updateGradinentAnimationState() {
+    private func updateGradinentAnimationState(forceStart: Bool = false) {
         guard let callState = self.callState else {
             backgroundGradientNode.stopSpinning()
             return
@@ -1331,7 +1331,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         if case .active = callState.state, self.incomingVideoNodeValue != nil || self.outgoingVideoNodeValue != nil {
             backgroundGradientNode.stopSpinning()
         } else {
-            backgroundGradientNode.startSpinning()
+            backgroundGradientNode.startSpinning(force: forceStart)
         }
     }
     
@@ -1453,6 +1453,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 self.containerNode.layer.animateScale(from: 1.04, to: 1.0, duration: 0.3)
                 self.containerNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
             }
+            updateGradinentAnimationState(forceStart: true)
         }
     }
     
