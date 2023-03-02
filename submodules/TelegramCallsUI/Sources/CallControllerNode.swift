@@ -448,6 +448,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     var callEnded: ((Bool) -> Void)?
     var dismissedInteractively: (() -> Void)?
     var present: ((ViewController) -> Void)?
+    var presentPreviewCameraController: ((ViewController) -> Void)?
     var dismissAllTooltips: (() -> Void)?
     
     private var toastContent: CallControllerToastContent?
@@ -626,6 +627,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                         }
                         
                         strongSelf.call.makeOutgoingVideoView(completion: { [weak self] outgoingVideoView in
+                            // INFO: экшен на нажатие кнопки камеры, показывается превью
                             guard let strongSelf = self else {
                                 return
                             }
@@ -653,14 +655,22 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                                     updateLayoutImpl?(layout, navigationBarHeight)
                                 })
                                 
-                                let controller = VoiceChatCameraPreviewController(sharedContext: strongSelf.sharedContext, cameraNode: outgoingVideoNode, shareCamera: { _, _ in
-                                    proceed()
-                                }, switchCamera: { [weak self] in
-                                    Queue.mainQueue().after(0.1) {
-                                        self?.call.switchVideoCamera()
+                                let cameraButtonFrame = strongSelf.buttonsNode.videoButtonFrame().flatMap { frame -> CGRect in
+                                    strongSelf.buttonsNode.view.convert(frame, to: strongSelf.view)
+                                }
+
+                                let controller = VoiceChatCameraPreviewController(
+                                    sharedContext: strongSelf.sharedContext,
+                                    cameraNode: outgoingVideoNode,
+                                    animateFromRect: cameraButtonFrame ?? .zero,
+                                    shareCamera: { _, _ in proceed() },
+                                    switchCamera: { [weak self] in
+                                        Queue.mainQueue().after(0.1) {
+                                            self?.call.switchVideoCamera()
+                                        }
                                     }
-                                })
-                                strongSelf.present?(controller)
+                                )
+                                strongSelf.presentPreviewCameraController?(controller)
                                 
                                 updateLayoutImpl = { [weak controller] layout, navigationBarHeight in
                                     controller?.containerLayoutUpdated(layout, transition: .immediate)

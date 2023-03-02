@@ -663,8 +663,6 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             |> deliverOnMainQueue).start(next: { [weak self] call in
                 if let strongSelf = self {
                     if call !== strongSelf.callController?.call {
-                        // INFO: здесь раньше происходило закрытие контроллера
-                        
                         strongSelf.callController?.waitRatingAndDismiss()
                         strongSelf.callController = nil
                         strongSelf.hasOngoingCall.set(false)
@@ -674,6 +672,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                             // TODO: нужно поменять обратно
                             let callController = CallController(sharedContext: strongSelf, account: call.context.account, call: call, easyDebugAccess: true)
                             strongSelf.callController = callController
+                            // INFO: презентится колл контроллер
                             strongSelf.mainWindow?.present(callController, on: .calls)
                             strongSelf.callState.set(call.state
                             |> map(Optional.init))
@@ -1636,4 +1635,13 @@ private func peerInfoControllerImpl(context: AccountContext, updatedPresentation
         return PeerInfoScreenImpl(context: context, updatedPresentationData: updatedPresentationData, peerId: peer.id, avatarInitiallyExpanded: avatarInitiallyExpanded, isOpenedFromChat: isOpenedFromChat, nearbyPeerDistance: nil, reactionSourceMessageId: nil, callMessages: [])
     }
     return nil
+}
+
+private class MyController: ViewController {
+    
+    override func loadDisplayNode() {
+        let node = ASDisplayNode()
+        node.backgroundColor = .yellow
+        self.displayNode = node
+    }
 }
