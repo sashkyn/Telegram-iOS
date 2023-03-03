@@ -398,7 +398,10 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     
     private var displayedCameraConfirmation: Bool = false
     private var displayedCameraTooltip: Bool = false
-        
+    
+    private var tempVideoAppeared: Bool = false
+    private var tempVideoAfterDismissCamera: CallVideoNode?
+    
     private var expandedVideoNode: CallVideoNode?
     private var minimizedVideoNode: CallVideoNode?
     private var disableAnimationForExpandedVideoOnce: Bool = false
@@ -649,43 +652,36 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                                 let cameraButtonFrame = strongSelf.buttonsNode.videoButtonFrame().flatMap { frame -> CGRect in
                                     strongSelf.buttonsNode.view.convert(frame, to: strongSelf.view)
                                 }
-
-                                let previewVideoFrame: () -> CGRect = {
-                                    guard let validLayout = strongSelf.validLayout else {
-                                        return .zero
+                                
+                                let proceed: (() -> Void) = {
+                                    guard let (layout, navigationBarHeight) = strongSelf.validLayout else {
+                                        return
                                     }
                                     
-                                    // TODO: либо большой либо маленький экран
+                                    // INFO: сетаем временную камеру прям только после закрытия контроллера
                                     
-//                                    let fullscreenVideoFrame = CGRect(
-//                                        origin: .zero,
-//                                        size: validLayout.0.size
-//                                    )
-//                                    return fullscreenVideoFrame
-                                    
-                                    let previewFrame = strongSelf.calculatePreviewVideoRect(
-                                        layout: validLayout.0,
-                                        navigationHeight: validLayout.1
-                                    )
-                                    
-                                    return strongSelf.view.convert(
-                                        previewFrame,
-                                        to: strongSelf.view
-                                    )
-                                }
-                                
-                                let proceed = {
-                                    strongSelf.minimizedVideoNode = outgoingVideoNode
+                                    // TODO: сделать обработку фейкового видео если видео на звонке еще нет
+                                    if strongSelf.expandedVideoNode != nil {
+                                        strongSelf.tempVideoAfterDismissCamera = outgoingVideoNode
+                                    }
                                     
                                     strongSelf.displayedCameraConfirmation = true
                                     strongSelf.call.requestVideo()
+                                    
+                                    strongSelf.containerLayoutUpdated(
+                                        layout,
+                                        navigationBarHeight: navigationBarHeight,
+                                        transition: .animated(
+                                            duration: 0.3,
+                                            curve: .easeInOut
+                                        )
+                                    )
                                 }
 
                                 let controller = CallPreviewCameraVideoController(
                                     sharedContext: strongSelf.sharedContext,
                                     cameraNode: outgoingVideoNode,
                                     animateInFromRect: cameraButtonFrame,
-                                    animateOutRect: previewVideoFrame,
                                     shareCamera: { _, _ in proceed() },
                                     switchCamera: { [weak self] in
                                         Queue.mainQueue().after(0.1) {
@@ -896,11 +892,10 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         let statusValue: CallControllerStatusValue
         var statusReception: Int32?
         
+        // INFO: состояние видео у собеседника
         switch callState.remoteVideoState {
         case .active,
              .paused:
-            // INFO: если у собеседника появилось видео
-            
             if !self.incomingVideoViewRequested {
                 self.incomingVideoViewRequested = true
                 let delayUntilInitialized = true
@@ -1818,9 +1813,13 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             }
         }
         
+        // INFO: Если есть Expanded видео
+        
         if let expandedVideoNode = self.expandedVideoNode {
             transition.updateAlpha(node: expandedVideoNode, alpha: 1.0)
             var expandedVideoTransition = transition
+            
+            // Появление первый раз происходит без анимации
             if expandedVideoNode.frame.isEmpty || self.disableAnimationForExpandedVideoOnce {
                 expandedVideoTransition = .immediate
                 self.disableAnimationForExpandedVideoOnce = false
@@ -1829,9 +1828,13 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             if let removedExpandedVideoNodeValue = self.removedExpandedVideoNode {
                 self.removedExpandedVideoNode = nil
                 
-                expandedVideoTransition.updateFrame(node: expandedVideoNode, frame: fullscreenVideoFrame, completion: { [weak removedExpandedVideoNodeValue] _ in
-                    removedExpandedVideoNodeValue?.removeFromSupernode()
-                })
+                expandedVideoTransition.updateFrame(
+                    node: expandedVideoNode,
+                    frame: fullscreenVideoFrame,
+                    completion: { [weak removedExpandedVideoNodeValue] _ in
+                        removedExpandedVideoNodeValue?.removeFromSupernode()
+                    }
+                )
             } else {
                 expandedVideoTransition.updateFrame(node: expandedVideoNode, frame: fullscreenVideoFrame)
             }
@@ -1859,15 +1862,63 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             }
         }
         
+        // TODO: сделать так чтобы снапшот переезжал, а не камера
+        
+        if let expandedVideoNode,
+           let tempVideoAfterDismissCamera {
+            expandedVideoNode.supernode?.insertSubnode(
+                tempVideoAfterDismissCamera,
+                aboveSubnode: expandedVideoNode
+            )
+
+            let immediateTransition = ContainedViewLayoutTransition.immediate
+
+            immediateTransition.updateFrame(
+                node: tempVideoAfterDismissCamera,
+                frame: fullscreenVideoFrame
+            )
+            
+            tempVideoAfterDismissCamera.updateLayout(
+                size: fullscreenVideoFrame.size,
+                cornerRadius: 0,
+                isOutgoing: true,
+                deviceOrientation: mappedDeviceOrientation,
+                isCompactLayout: layout.metrics.widthClass == .compact,
+                transition: immediateTransition
+            )
+            
+            Queue.mainQueue().after(0.2) { [weak self, weak tempVideoAfterDismissCamera] in
+                guard let self, let tempVideoAfterDismissCamera else { return }
+                
+                let previewVideoFrame = self.calculatePreviewVideoRect(layout: layout, navigationHeight: navigationBarHeight)
+                print("minimized fake frame - \(previewVideoFrame)")
+                transition.updateFrame(
+                    node: tempVideoAfterDismissCamera,
+                    frame: previewVideoFrame,
+                    completion: { _ in
+                        self.tempVideoAppeared = true
+                    }
+                )
+                tempVideoAfterDismissCamera.updateLayout(
+                    size: previewVideoFrame.size,
+                    cornerRadius: interpolate(from: 14.0, to: 24.0, value: self.pictureInPictureTransitionFraction),
+                    isOutgoing: true,
+                    deviceOrientation: mappedDeviceOrientation,
+                    isCompactLayout: layout.metrics.widthClass == .compact,
+                    transition: transition
+                )
+            }
+        }
+        
+        // INFO: Если есть Minimized видео
         
         if let minimizedVideoNode = self.minimizedVideoNode {
             transition.updateAlpha(node: minimizedVideoNode, alpha: min(pipTransitionAlpha, pinchTransitionAlpha))
             var minimizedVideoTransition = transition
-            var didAppear = false
             if minimizedVideoNode.frame.isEmpty {
                 minimizedVideoTransition = .immediate
-                didAppear = true
             }
+            
             if self.minimizedVideoDraggingPosition == nil {
                 if let animationForExpandedVideoSnapshotView = self.animationForExpandedVideoSnapshotView {
                     self.containerNode.view.addSubview(animationForExpandedVideoSnapshotView)
@@ -1884,7 +1935,16 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 }
                 minimizedVideoTransition.updateFrame(
                     node: minimizedVideoNode,
-                    frame: previewVideoFrame
+                    frame: previewVideoFrame,
+                    completion: { [weak self] _ in
+                        guard let self,
+                              let tempVideoAfterDismissCamera = self.tempVideoAfterDismissCamera,
+                              self.tempVideoAppeared else { return }
+
+                        tempVideoAfterDismissCamera.removeFromSupernode()
+                        self.tempVideoAfterDismissCamera = nil
+                        self.tempVideoAppeared = false
+                    }
                 )
                 minimizedVideoNode.updateLayout(
                     size: previewVideoFrame.size,
@@ -1895,37 +1955,9 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                     transition: minimizedVideoTransition
                 )
                 
-                if transition.isAnimated && didAppear {
-                    let immediateTransition = ContainedViewLayoutTransition.immediate
-                    
-                    immediateTransition.updateFrame(
-                        node: minimizedVideoNode,
-                        frame: fullscreenVideoFrame
-                    )
-                    
-                    transition.updateFrame(
-                        node: minimizedVideoNode,
-                        frame: previewVideoFrame,
-                        completion: { [weak self, weak minimizedVideoNode] _ in
-                            guard let self, let minimizedVideoNode else {
-                                return
-                            }
-                            
-                            minimizedVideoNode.updateLayout(
-                                size: previewVideoFrame.size,
-                                cornerRadius: interpolate(from: 14.0, to: 24.0, value: self.pictureInPictureTransitionFraction),
-                                isOutgoing: minimizedVideoNode === self.outgoingVideoNode,
-                                deviceOrientation: mappedDeviceOrientation,
-                                isCompactLayout: layout.metrics.widthClass == .compact,
-                                transition: minimizedVideoTransition
-                            )
-                        }
-                    )
-                    //minimizedVideoNode.layer.animateSpring(from: 0.1 as NSNumber, to: 1.0 as NSNumber, keyPath: "transform.scale", duration: 0.5)
-                }
+                print("minimized real frame - \(previewVideoFrame)")
+                self.animationForExpandedVideoSnapshotView = nil
             }
-            
-            self.animationForExpandedVideoSnapshotView = nil
         }
         
         let keyTextSize = self.keyButtonNode.frame.size
@@ -2057,7 +2089,11 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             } else {
                 if self.hasVideoNodes {
                     let point = recognizer.location(in: recognizer.view)
-                    if let expandedVideoNode = self.expandedVideoNode, let minimizedVideoNode = self.minimizedVideoNode, minimizedVideoNode.frame.contains(point) {
+                    
+                    // INFO: смена камер по нажатию на Minimized
+                    if let expandedVideoNode = self.expandedVideoNode,
+                       let minimizedVideoNode = self.minimizedVideoNode,
+                       minimizedVideoNode.frame.contains(point) {
                         if !self.areUserActionsDisabledNow() {
                             let copyView = minimizedVideoNode.view.snapshotView(afterScreenUpdates: false)
                             copyView?.frame = minimizedVideoNode.frame
@@ -2066,18 +2102,26 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                             if let supernode = expandedVideoNode.supernode {
                                 supernode.insertSubnode(expandedVideoNode, aboveSubnode: minimizedVideoNode)
                             }
+                            
                             self.disableActionsUntilTimestamp = CACurrentMediaTime() + 0.3
+                            
                             if let (layout, navigationBarHeight) = self.validLayout {
                                 self.disableAnimationForExpandedVideoOnce = true
                                 self.animationForExpandedVideoSnapshotView = copyView
-                                self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .animated(duration: 0.3, curve: .easeInOut))
+                                self.containerLayoutUpdated(
+                                    layout, navigationBarHeight: navigationBarHeight,
+                                    transition: .animated(duration: 0.3, curve: .easeInOut)
+                                )
                             }
                         }
                     } else {
+                        // INFO: здесь скрывает UI - нажали на ExpandedVideo
                         var updated = false
                         if let callState = self.callState {
                             switch callState.state {
-                            case .active, .connecting, .reconnecting:
+                            case .active,
+                                 .connecting,
+                                 .reconnecting:
                                 self.isUIHidden = !self.isUIHidden
                                 updated = true
                             default:
@@ -2085,7 +2129,10 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                             }
                         }
                         if updated, let (layout, navigationBarHeight) = self.validLayout {
-                            self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .animated(duration: 0.3, curve: .easeInOut))
+                            self.containerLayoutUpdated(
+                                layout, navigationBarHeight: navigationBarHeight,
+                                transition: .animated(duration: 0.3, curve: .easeInOut)
+                            )
                         }
                     }
                 } else {

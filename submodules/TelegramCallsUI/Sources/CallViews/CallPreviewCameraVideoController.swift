@@ -21,7 +21,6 @@ final class CallPreviewCameraVideoController: ViewController {
     
     private let sharedContext: SharedAccountContext
     let animateInFromRect: CGRect?
-    let animateOutRect: (() -> CGRect)
     
     private var animatedIn = false
 
@@ -35,7 +34,6 @@ final class CallPreviewCameraVideoController: ViewController {
         sharedContext: SharedAccountContext,
         cameraNode: PreviewVideoNode,
         animateInFromRect: CGRect?,
-        animateOutRect: @escaping (() -> CGRect),
         shareCamera: @escaping (ASDisplayNode, Bool) -> Void,
         switchCamera: @escaping () -> Void
     ) {
@@ -44,7 +42,6 @@ final class CallPreviewCameraVideoController: ViewController {
         self.shareCamera = shareCamera
         self.switchCamera = switchCamera
         self.animateInFromRect = animateInFromRect
-        self.animateOutRect = animateOutRect
         
         super.init(navigationBarPresentationData: nil)
         
@@ -183,6 +180,7 @@ private class CallPreviewCameraVideoNode: ViewControllerTracingNode, UIScrollVie
         self.backgroundNode = ASDisplayNode()
     
         self.contentBackgroundNode = ASDisplayNode()
+//        self.contentBackgroundNode.backgroundColor = UIColor.black
         
         let title =  self.presentationData.strings.VoiceChat_VideoPreviewTitle
         
@@ -206,7 +204,7 @@ private class CallPreviewCameraVideoNode: ViewControllerTracingNode, UIScrollVie
         
         self.previewContainerNode = ASDisplayNode()
         self.previewContainerNode.clipsToBounds = true
-        //self.previewContainerNode.backgroundColor = UIColor(rgb: 0x2b2b2f)
+//        self.previewContainerNode.backgroundColor = UIColor(rgb: 0x2b2b2f)
         
         self.shimmerNode = ShimmerEffectForegroundNode(size: 200.0)
         self.previewContainerNode.addSubnode(self.shimmerNode)
@@ -396,7 +394,7 @@ private class CallPreviewCameraVideoNode: ViewControllerTracingNode, UIScrollVie
             completion?()
         }
 
-        self.dimNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.3, removeOnCompletion: false, completion: { _ in
+        self.dimNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.1, removeOnCompletion: false, completion: { _ in
             dimCompleted = true
             internalCompletion()
         })
