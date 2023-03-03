@@ -36,7 +36,8 @@ final class CallPreviewCameraVideoController: ViewController {
         cameraNode: PreviewVideoNode,
         animateInFromRect: CGRect?,
         animateOutRect: @escaping (() -> CGRect),
-        shareCamera: @escaping (ASDisplayNode, Bool) -> Void, switchCamera: @escaping () -> Void
+        shareCamera: @escaping (ASDisplayNode, Bool) -> Void,
+        switchCamera: @escaping () -> Void
     ) {
         self.sharedContext = sharedContext
         self.cameraNode = cameraNode
@@ -386,35 +387,35 @@ private class CallPreviewCameraVideoNode: ViewControllerTracingNode, UIScrollVie
     
     func animateOut(completion: (() -> Void)? = nil) {
         var dimCompleted = false
-        var offsetCompleted = false
+//        var offsetCompleted = true
 
         let internalCompletion: () -> Void = { [weak self] in
-            if dimCompleted, offsetCompleted {
+            if dimCompleted { //offsetCompleted {
                 self?.dismiss?()
             }
             completion?()
         }
 
-        self.dimNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 2, removeOnCompletion: false, completion: { _ in
+        self.dimNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.3, removeOnCompletion: false, completion: { _ in
             dimCompleted = true
             internalCompletion()
         })
         
-        let transition: ContainedViewLayoutTransition = .animated(duration: 5, curve: .easeInOut)
-        
-        transition.updateFrame(
-            node: self.cameraNode,
-            frame: self.controller?.animateOutRect() ?? self.bounds,
-            completion: { _ in
-                offsetCompleted = true
-                internalCompletion()
-            }
-        )
-        
-        transition.updateCornerRadius(
-            node: self.cameraNode,
-            cornerRadius: 16
-        )
+//        let transition: ContainedViewLayoutTransition = .animated(duration: 5, curve: .easeInOut)
+//
+//        transition.updateFrame(
+//            node: self.cameraNode,
+//            frame: self.controller?.animateOutRect() ?? self.bounds,
+//            completion: { _ in
+//                offsetCompleted = true
+//                internalCompletion()
+//            }
+//        )
+//
+//        transition.updateCornerRadius(
+//            node: self.cameraNode,
+//            cornerRadius: 16
+//        )
     }
     
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
