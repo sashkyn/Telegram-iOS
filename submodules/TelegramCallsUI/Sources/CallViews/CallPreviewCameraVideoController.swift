@@ -20,8 +20,8 @@ final class CallPreviewCameraVideoController: ViewController {
     }
     
     private let sharedContext: SharedAccountContext
-    private let animateInFromRect: CGRect?
-    private let animateOutRect: CGRect?
+    let animateInFromRect: CGRect?
+    let animateOutRect: (() -> CGRect)
     
     private var animatedIn = false
 
@@ -34,8 +34,8 @@ final class CallPreviewCameraVideoController: ViewController {
     init(
         sharedContext: SharedAccountContext,
         cameraNode: PreviewVideoNode,
-        animateInFromRect: CGRect? = nil,
-        animateOutRect: CGRect? = nil,
+        animateInFromRect: CGRect?,
+        animateOutRect: @escaping (() -> CGRect),
         shareCamera: @escaping (ASDisplayNode, Bool) -> Void, switchCamera: @escaping () -> Void
     ) {
         self.sharedContext = sharedContext
@@ -73,9 +73,7 @@ final class CallPreviewCameraVideoController: ViewController {
         self.displayNode = CallPreviewCameraVideoNode(
             controller: self,
             sharedContext: self.sharedContext,
-            cameraNode: self.cameraNode,
-            animateInFromRect: self.animateInFromRect,
-            animateOutRect: self.animateOutRect
+            cameraNode: self.cameraNode
         )
         
         self.controllerNode.shareCamera = { [weak self] unmuted in
@@ -124,8 +122,6 @@ private class CallPreviewCameraVideoNode: ViewControllerTracingNode, UIScrollVie
     private weak var controller: CallPreviewCameraVideoController?
     private let sharedContext: SharedAccountContext
     private var presentationData: PresentationData
-    private let animateInFromRect: CGRect?
-    private let animateOutRect: CGRect?
     
     private let cameraNode: PreviewVideoNode
     private let dimNode: ASDisplayNode
@@ -161,15 +157,11 @@ private class CallPreviewCameraVideoNode: ViewControllerTracingNode, UIScrollVie
     init(
         controller: CallPreviewCameraVideoController,
         sharedContext: SharedAccountContext,
-        cameraNode: PreviewVideoNode,
-        animateInFromRect: CGRect?,
-        animateOutRect: CGRect?
+        cameraNode: PreviewVideoNode
     ) {
         self.controller = controller
         self.sharedContext = sharedContext
         self.presentationData = sharedContext.currentPresentationData.with { $0 }
-        self.animateInFromRect = animateInFromRect
-        self.animateOutRect = animateOutRect
         
         self.cameraNode = cameraNode
         self.cameraNode.backgroundColor = UIColor(rgb: 0x000000)
@@ -364,7 +356,7 @@ private class CallPreviewCameraVideoNode: ViewControllerTracingNode, UIScrollVie
         self.dimNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.4)
         
         let fromRect: CGRect = {
-            if let animateInFromRect {
+            if let animateInFromRect = self.controller?.animateInFromRect {
                 return self.convert(animateInFromRect, to: previewContainerNode)
             } else {
                 return CGRect(origin: previewContainerNode.frame.center, size: .init(width: 50, height: 50))
@@ -412,7 +404,7 @@ private class CallPreviewCameraVideoNode: ViewControllerTracingNode, UIScrollVie
         
         transition.updateFrame(
             node: self.cameraNode,
-            frame: self.animateOutRect ?? self.bounds,
+            frame: self.controller?.animateOutRect() ?? self.bounds,
             completion: { _ in
                 offsetCompleted = true
                 internalCompletion()

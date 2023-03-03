@@ -661,12 +661,12 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                                     strongSelf.buttonsNode.view.convert(frame, to: strongSelf.view)
                                 }
 
-                                let previewVideoFrame: CGRect = {
+                                let previewVideoFrame: () -> CGRect = {
                                     guard let validLayout = strongSelf.validLayout else {
                                         return .zero
                                     }
                                     
-                                    // INFO: либо большой либо маленький экран
+                                    // TODO: либо большой либо маленький экран
                                     
 //                                    let fullscreenVideoFrame = CGRect(
 //                                        origin: .zero,
@@ -674,22 +674,22 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
 //                                    )
 //                                    return fullscreenVideoFrame
                                     
-                                    return strongSelf.calculatePreviewVideoRect(
+                                    let previewFrame = strongSelf.calculatePreviewVideoRect(
                                         layout: validLayout.0,
                                         navigationHeight: validLayout.1
                                     )
-                                }()
-                                
-                                let outgoingVideoFrame = strongSelf.containerNode.view.convert(
-                                    previewVideoFrame,
-                                    to: strongSelf.view
-                                )
+                                    
+                                    return strongSelf.view.convert(
+                                        previewFrame,
+                                        to: strongSelf.view
+                                    )
+                                }
 
                                 let controller = CallPreviewCameraVideoController(
                                     sharedContext: strongSelf.sharedContext,
                                     cameraNode: outgoingVideoNode,
                                     animateInFromRect: cameraButtonFrame,
-                                    animateOutRect: outgoingVideoFrame,
+                                    animateOutRect: previewVideoFrame,
                                     shareCamera: { _, _ in proceed() },
                                     switchCamera: { [weak self] in
                                         Queue.mainQueue().after(0.1) {
@@ -698,6 +698,9 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                                     }
                                 )
                                 strongSelf.present?(controller)
+                                
+                                strongSelf.isRequestingVideo = true
+                                strongSelf.updateButtonsMode()
                                 
                                 updateLayoutImpl = { [weak controller] layout, navigationBarHeight in
                                     controller?.containerLayoutUpdated(layout, transition: .immediate)
@@ -1798,6 +1801,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         
         let fullscreenVideoFrame = containerFullScreenFrame
         let previewVideoFrame = self.calculatePreviewVideoRect(layout: layout, navigationHeight: navigationBarHeight)
+        print("previewVideoFrame1 - \(previewVideoFrame)")
         
         if let removedMinimizedVideoNodeValue = self.removedMinimizedVideoNode {
             self.removedMinimizedVideoNode = nil
