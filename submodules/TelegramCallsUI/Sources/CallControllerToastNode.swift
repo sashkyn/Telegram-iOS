@@ -147,10 +147,9 @@ final class CallControllerToastContainerNode: ASDisplayNode {
                     )
                 case .weakSignal:
                     toastContent = CallControllerToastItemNode.Content(
-                        key: .battery,
+                        key: .weakSignal,
                         image: .battery,
-                        text: "Weak network signal" //strings.Call_BatteryLow(self.title).string
-                        // TODO: Strings
+                        text: "Weak network signal" // TODO: Strings
                     )
             }
             let toastHeight = toastNode.update(width: width, content: toastContent, transition: toastTransition)

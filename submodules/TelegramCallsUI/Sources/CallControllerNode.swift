@@ -410,11 +410,13 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     private var outgoingVideoNodeCorner: VideoNodeCorner = .bottomRight
     private let backButtonArrowNode: ASImageNode
     private let backButtonNode: HighlightableButtonNode
-    private let nameAndStatusNode: CallControllerStatusNode
+    private let statusNode: CallStatusNode
     private let toastNode: CallControllerToastContainerNode
     private let buttonsNode: CallControllerButtonsNode
     private var keyPreviewNode: CallEmojiKeyPreviewNode?
     private var ratingNode: CallRatingNode?
+    
+    private var lastTimestampValue: Double?
     
     private var debugNode: CallDebugNode?
     
@@ -513,7 +515,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         self.backButtonArrowNode.image = NavigationBarTheme.generateBackArrowImage(color: .white)
         self.backButtonNode = HighlightableButtonNode()
         
-        self.nameAndStatusNode = CallControllerStatusNode()
+        self.statusNode = CallStatusNode()
         
         self.buttonsNode = CallControllerButtonsNode(strings: self.presentationData.strings)
         self.toastNode = CallControllerToastContainerNode(strings: self.presentationData.strings)
@@ -551,7 +553,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         self.containerNode.addSubnode(self.avatarNode)
         self.containerNode.addSubnode(self.videoContainerNode)
         self.containerNode.addSubnode(self.videoDimNode)
-        self.containerNode.addSubnode(self.nameAndStatusNode)
+        self.containerNode.addSubnode(self.statusNode)
         self.containerNode.addSubnode(self.buttonsNode)
         self.containerNode.addSubnode(self.toastNode)
         self.containerNode.addSubnode(self.keyButtonNode)
@@ -847,9 +849,9 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             self.toastNode.title = EnginePeer(peer).compactDisplayTitle
             
             // INFO: Здесь сетается имя пользователя, который звонит
-            self.nameAndStatusNode.title = EnginePeer(peer).displayTitle(strings: self.presentationData.strings, displayOrder: self.presentationData.nameDisplayOrder)
+            self.statusNode.title = EnginePeer(peer).displayTitle(strings: self.presentationData.strings, displayOrder: self.presentationData.nameDisplayOrder)
             if hasOther {
-                self.nameAndStatusNode.subtitle = self.presentationData.strings.Call_AnsweringWithAccount(EnginePeer(accountPeer).displayTitle(strings: self.presentationData.strings, displayOrder: self.presentationData.nameDisplayOrder)).string
+                self.statusNode.subtitle = self.presentationData.strings.Call_AnsweringWithAccount(EnginePeer(accountPeer).displayTitle(strings: self.presentationData.strings, displayOrder: self.presentationData.nameDisplayOrder)).string
                 
                 if let callState = self.callState {
                     self.updateCallState(callState)
@@ -888,9 +890,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     
     func updateCallState(_ callState: PresentationCallState) {
         self.callState = callState
-        
-        let statusValue: CallControllerStatusValue
-        var statusReception: Int32?
         
         // INFO: состояние видео у собеседника
         switch callState.remoteVideoState {
@@ -1100,27 +1099,46 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 incomingVideoNode.updateIsBlurred(isBlurred: !isActive)
             }
         }
+
+        
+        var statusValue: CallStatusNode.StatusValue = .text(string: "")
+        var statusReception: Int32?
+        var titleStatusValue: String?
+        
+        let endCall = {
+            if let lastTimeStampValue = self.lastTimestampValue {
+                titleStatusValue = self.presentationData.strings.Call_StatusEnded
+                statusValue = .timer(
+                    { value, _ in value },
+                    lastTimeStampValue,
+                    true
+                )
+            } else {
+                statusValue = .text(string: self.presentationData.strings.Call_StatusEnded)
+            }
+        }
                 
         switch callState.state {
             case .waiting, .connecting:
-                statusValue = .text(string: self.presentationData.strings.Call_StatusConnecting, displayLogo: false)
+                statusValue = .text(string: self.presentationData.strings.Call_StatusConnecting)
             case let .requesting(ringing):
                 if ringing {
-                    statusValue = .text(string: self.presentationData.strings.Call_StatusRinging, displayLogo: false)
+                    statusValue = .text(string: self.presentationData.strings.Call_StatusRinging)
                 } else {
-                    statusValue = .text(string: self.presentationData.strings.Call_StatusRequesting, displayLogo: false)
+                    statusValue = .text(string: self.presentationData.strings.Call_StatusRequesting)
                 }
             case .terminating:
-                statusValue = .text(string: self.presentationData.strings.Call_StatusEnded, displayLogo: false)
+                endCall()
             case let .terminated(_, reason, _):
                 if let reason = reason {
                     switch reason {
                         case let .ended(type):
                             switch type {
                                 case .busy:
-                                    statusValue = .text(string: self.presentationData.strings.Call_StatusBusy, displayLogo: false)
-                                case .hungUp, .missed:
-                                    statusValue = .text(string: self.presentationData.strings.Call_StatusEnded, displayLogo: false)
+                                    statusValue = .text(string: self.presentationData.strings.Call_StatusBusy)
+                                case .hungUp,
+                                     .missed:
+                                    endCall()
                             }
                         case let .error(error):
                             let text = self.presentationData.strings.Call_StatusFailed
@@ -1142,10 +1160,10 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                             default:
                                 break
                             }
-                            statusValue = .text(string: text, displayLogo: false)
+                            statusValue = .text(string: text)
                     }
                 } else {
-                    statusValue = .text(string: self.presentationData.strings.Call_StatusEnded, displayLogo: false)
+                    statusValue = .text(string: self.presentationData.strings.Call_StatusEnded)
                 }
             case .ringing:
                 var text: String
@@ -1154,11 +1172,13 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 } else {
                     text = self.presentationData.strings.Call_IncomingVoiceCall
                 }
-                if !self.nameAndStatusNode.subtitle.isEmpty {
-                    text += "\n\(self.nameAndStatusNode.subtitle)"
+                if !self.statusNode.subtitle.isEmpty {
+                    text += "\n\(self.statusNode.subtitle)"
                 }
-                statusValue = .text(string: text, displayLogo: false)
-            case .active(let timestamp, let reception, let keyVisualHash), .reconnecting(let timestamp, let reception, let keyVisualHash):
+                statusValue = .text(string: text)
+            case .active(let timestamp, let reception, let keyVisualHash),
+                 .reconnecting(let timestamp, let reception, let keyVisualHash):
+                self.lastTimestampValue = timestamp
                 let strings = self.presentationData.strings
                 var isReconnecting = false
                 if case .reconnecting = callState.state {
@@ -1180,13 +1200,17 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                     }
                 }
                 
-                statusValue = .timer({ value, measure in
-                    if isReconnecting || (self.outgoingVideoViewRequested && value == "00:00" && !measure) {
-                        return strings.Call_StatusConnecting
-                    } else {
-                        return value
-                    }
-                }, timestamp)
+                statusValue = .timer(
+                    { value, measure in
+                        if isReconnecting || (self.outgoingVideoViewRequested && value == "00:00" && !measure) {
+                            return strings.Call_StatusConnecting
+                        } else {
+                            return value
+                        }
+                    },
+                    timestamp,
+                    false
+                )
                 if case .active = callState.state {
                     statusReception = reception
                 }
@@ -1199,9 +1223,12 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                     break
             }
         }
-        self.nameAndStatusNode.status = statusValue
+        if let titleStatusValue {
+            self.statusNode.title = titleStatusValue
+        }
+        self.statusNode.status = statusValue
         // INFO: Это количество антеннок в UI от 0 до 4.
-        self.nameAndStatusNode.reception = statusReception
+        self.statusNode.reception = statusReception
         
         if let callState = self.callState {
             switch callState.state {
@@ -1321,11 +1348,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     }
     
     private func updateDimVisibility(transition: ContainedViewLayoutTransition = .animated(duration: 0.3, curve: .easeInOut)) {
-        guard let callState = self.callState else {
-            return
-        }
-        
-        let visible = self.incomingVideoNode != nil || self.outgoingVideoNode != nil
+        let visible = self.hasVideoNodes
         
         let currentVisible = self.videoDimNode.image == nil
         if visible != currentVisible {
@@ -1341,13 +1364,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 self.videoDimNode.image = image
             }
         }
-        
-        var nameAndStatusNodeVisible = true
-        if case .active = callState.state, self.incomingVideoNode != nil || self.outgoingVideoNode != nil {
-            nameAndStatusNodeVisible = false
-        }
-        
-        self.nameAndStatusNode.setVisible(nameAndStatusNodeVisible || self.keyPreviewNode != nil, transition: transition)
     }
     
     private func updateGradinentAnimationState(forceStart: Bool = false) {
@@ -1710,14 +1726,16 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         if let ratingNode {
             self.avatarNode.update(audioBlobState: .disabled)
             
+            // TODO: здесь можно посетать статус и имя на ended
+            
             let rect = CGRect(
                 origin: .init(
                     x: 0.0,
-                    y: nameAndStatusNode.frame.maxY + 50.0
+                    y: statusNode.frame.maxY + 50.0
                 ),
                 size: .init(
                     width: containerFullScreenFrame.width,
-                    height: containerFullScreenFrame.height - nameAndStatusNode.frame.maxY - 50 - 50 // 50 небольшой инсет
+                    height: containerFullScreenFrame.height - statusNode.frame.maxY - 50 - 50 // 50 небольшой инсет
                 )
             )
             transition.updateFrame(
@@ -1783,15 +1801,43 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         )
         self.avatarNode.updateLayout()
 
-        let statusHeight = self.nameAndStatusNode.updateLayout(constrainedWidth: layout.size.width, transition: transition)
-        transition.updateFrame(
-            node: self.nameAndStatusNode,
-            frame: CGRect(
-                origin: CGPoint(x: 0.0, y: self.avatarNode.frame.maxY + 40.0),
-                size: CGSize(width: layout.size.width, height: statusHeight)
+        if hasVideoNodes {
+            let statusHeight = self.statusNode.updateLayout(
+                constrainedWidth: layout.size.width,
+                transition: transition
             )
-        )
-        transition.updateAlpha(node: self.nameAndStatusNode, alpha: overlayAlpha)
+            transition.updateFrame(
+                node: self.statusNode,
+                frame: CGRect(
+                    origin: .init(
+                        x: 0.0,
+                        y: topOriginY + 50.0
+                    ),
+                    size: .init(
+                        width: layout.size.width,
+                        height: statusHeight
+                    )
+                )
+            )
+        } else {
+            // TODO: выцентровывать
+            let statusHeight = self.statusNode.updateLayout(constrainedWidth: layout.size.width, transition: transition)
+            transition.updateFrame(
+                node: self.statusNode,
+                frame: CGRect(
+                    origin: .init(
+                        x: 0.0,
+                        y: self.avatarNode.frame.maxY + 40.0
+                    ),
+                    size: .init(
+                        width: layout.size.width,
+                        height: statusHeight
+                    )
+                )
+            )
+        }
+        
+        transition.updateAlpha(node: self.statusNode, alpha: overlayAlpha)
         
         transition.updateFrame(node: self.toastNode, frame: CGRect(origin: CGPoint(x: 0.0, y: toastOriginY), size: CGSize(width: layout.size.width, height: toastHeight)))
         transition.updateFrame(node: self.buttonsNode, frame: CGRect(origin: CGPoint(x: 0.0, y: buttonsOriginY), size: CGSize(width: layout.size.width, height: buttonsHeight)))
@@ -1887,7 +1933,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 transition: immediateTransition
             )
             
-            Queue.mainQueue().after(0.2) { [weak self, weak tempVideoAfterDismissCamera] in
+            Queue.mainQueue().after(0.3) { [weak self, weak tempVideoAfterDismissCamera] in
                 guard let self, let tempVideoAfterDismissCamera else { return }
                 
                 let previewVideoFrame = self.calculatePreviewVideoRect(layout: layout, navigationHeight: navigationBarHeight)
@@ -2137,7 +2183,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                     }
                 } else {
                     let point = recognizer.location(in: recognizer.view)
-                    if self.nameAndStatusNode.frame.contains(point) {
+                    if self.statusNode.frame.contains(point) {
                         if self.easyDebugAccess {
                             self.presentDebugNode()
                         } else {
