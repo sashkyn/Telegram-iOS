@@ -26,7 +26,6 @@ protocol CallControllerNodeProtocol: AnyObject {
     var presentCallRating: ((CallId, Bool) -> Void)? { get set }
     var rateCall: ((CallId, Bool, Int) -> Void)? { get set }
     var present: ((ViewController) -> Void)? { get set }
-    var presentPreviewCameraController: ((ViewController) -> Void)? { get set }
     var callEnded: ((Bool) -> Void)? { get set }
     var dismissedInteractively: (() -> Void)? { get set }
     var dismissAllTooltips: (() -> Void)? { get set }
@@ -291,15 +290,6 @@ public final class CallController: ViewController {
             // INFO: здесь делаются презенты других экранов, например превью камеры
             if let strongSelf = self {
                 strongSelf.present(controller, in: .window(.root))
-            }
-        }
-        
-        // TODO: удалить это
-        
-        self.controllerNode.presentPreviewCameraController = { [weak self] previewCameraController in
-            // INFO: сделал отдельный present для камеры
-            if let strongSelf = self {
-                strongSelf.present(previewCameraController, in: .window(.root))
             }
         }
         

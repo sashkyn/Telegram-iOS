@@ -377,15 +377,18 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     
     private let avatarNode: CallUserAvatarNode
     
+    // INFO: входящие видосы
     private var candidateIncomingVideoNode: CallVideoNode?
     private var incomingVideoNode: CallVideoNode?
     private var incomingVideoViewRequested: Bool = false
+    
+    // INFO: исходящие видосы
     private var candidateOutgoingVideoNode: CallVideoNode?
     private var outgoingVideoNode: CallVideoNode?
     private var outgoingVideoViewRequested: Bool = false
     
-    private var removedMinimizedVideoNodeValue: CallVideoNode?
-    private var removedExpandedVideoNodeValue: CallVideoNode?
+    private var removedMinimizedVideoNode: CallVideoNode?
+    private var removedExpandedVideoNode: CallVideoNode?
     
     private var isRequestingVideo: Bool = false
     private var animateRequestedVideoOnce: Bool = false
@@ -448,7 +451,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     var callEnded: ((Bool) -> Void)?
     var dismissedInteractively: (() -> Void)?
     var present: ((ViewController) -> Void)?
-    var presentPreviewCameraController: ((ViewController) -> Void)?
     var dismissAllTooltips: (() -> Void)?
     
     private var toastContent: CallControllerToastContent?
@@ -659,10 +661,35 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                                     strongSelf.buttonsNode.view.convert(frame, to: strongSelf.view)
                                 }
 
-                                let controller = VoiceChatCameraPreviewController(
+                                let previewVideoFrame: CGRect = {
+                                    guard let validLayout = strongSelf.validLayout else {
+                                        return .zero
+                                    }
+                                    
+                                    // INFO: либо большой либо маленький экран
+                                    
+//                                    let fullscreenVideoFrame = CGRect(
+//                                        origin: .zero,
+//                                        size: validLayout.0.size
+//                                    )
+//                                    return fullscreenVideoFrame
+                                    
+                                    return strongSelf.calculatePreviewVideoRect(
+                                        layout: validLayout.0,
+                                        navigationHeight: validLayout.1
+                                    )
+                                }()
+                                
+                                let outgoingVideoFrame = strongSelf.containerNode.view.convert(
+                                    previewVideoFrame,
+                                    to: strongSelf.view
+                                )
+
+                                let controller = CallPreviewCameraVideoController(
                                     sharedContext: strongSelf.sharedContext,
                                     cameraNode: outgoingVideoNode,
-                                    animateFromRect: cameraButtonFrame ?? .zero,
+                                    animateInFromRect: cameraButtonFrame,
+                                    animateOutRect: outgoingVideoFrame,
                                     shareCamera: { _, _ in proceed() },
                                     switchCamera: { [weak self] in
                                         Queue.mainQueue().after(0.1) {
@@ -670,7 +697,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                                         }
                                     }
                                 )
-                                strongSelf.presentPreviewCameraController?(controller)
+                                strongSelf.present?(controller)
                                 
                                 updateLayoutImpl = { [weak controller] layout, navigationBarHeight in
                                     controller?.containerLayoutUpdated(layout, transition: .immediate)
@@ -934,11 +961,11 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             if let incomingVideoNodeValue = self.incomingVideoNode {
                 if self.minimizedVideoNode == incomingVideoNodeValue {
                     self.minimizedVideoNode = nil
-                    self.removedMinimizedVideoNodeValue = incomingVideoNodeValue
+                    self.removedMinimizedVideoNode = incomingVideoNodeValue
                 }
                 if self.expandedVideoNode == incomingVideoNodeValue {
                     self.expandedVideoNode = nil
-                    self.removedExpandedVideoNodeValue = incomingVideoNodeValue
+                    self.removedExpandedVideoNode = incomingVideoNodeValue
                     
                     if let minimizedVideoNode = self.minimizedVideoNode {
                         self.expandedVideoNode = minimizedVideoNode
@@ -1041,11 +1068,11 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             if let outgoingVideoNodeValue = self.outgoingVideoNode {
                 if self.minimizedVideoNode == outgoingVideoNodeValue {
                     self.minimizedVideoNode = nil
-                    self.removedMinimizedVideoNodeValue = outgoingVideoNodeValue
+                    self.removedMinimizedVideoNode = outgoingVideoNodeValue
                 }
                 if self.expandedVideoNode == self.outgoingVideoNode {
                     self.expandedVideoNode = nil
-                    self.removedExpandedVideoNodeValue = outgoingVideoNodeValue
+                    self.removedExpandedVideoNode = outgoingVideoNodeValue
                     
                     if let minimizedVideoNode = self.minimizedVideoNode {
                         self.expandedVideoNode = minimizedVideoNode
@@ -1627,10 +1654,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         
         let pinchTransitionAlpha: CGFloat = self.isVideoPinched ? 0.0 : 1.0
         
-        let previousVideoButtonFrame = self.buttonsNode.videoButtonFrame().flatMap { frame -> CGRect in
-            return self.buttonsNode.view.convert(frame, to: self.view)
-        }
-        
         let buttonsHeight: CGFloat
         if let buttonsMode = self.buttonsMode {
             buttonsHeight = self.buttonsNode.updateLayout(strings: self.presentationData.strings, mode: buttonsMode, constrainedWidth: layout.size.width, bottomInset: layout.intrinsicInsets.bottom, transition: transition)
@@ -1726,21 +1749,19 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         
         // Chat GPT: On an iPhone, both the width and height size classes are typically "Compact", since the screen is relatively small. On an iPad, the width and height size classes are usually "Regular", since the screen is larger and can accommodate more content.
         
-        // TODO: сделать нормальное смещение для всех экранов по аналогии с avatarOffset = 174.0, в соответсвии с фигмой
         var avatarOffset: CGFloat
         if layout.metrics.widthClass == .regular && layout.metrics.heightClass == .regular {
             if layout.size.height.isEqual(to: 1366.0) {
-                avatarOffset = 160.0
+                avatarOffset = 364
             } else {
-                avatarOffset = 120.0
+                avatarOffset = 320.0
             }
         } else {
             if layout.size.height.isEqual(to: 736.0) {
-                avatarOffset = 80.0
+                avatarOffset = 186.0
             } else if layout.size.width.isEqual(to: 320.0) {
-                avatarOffset = 60.0
+                avatarOffset = 166.0
             } else {
-                //statusOffset = 64.0
                 avatarOffset = 174.0
             }
         }
@@ -1778,12 +1799,12 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         let fullscreenVideoFrame = containerFullScreenFrame
         let previewVideoFrame = self.calculatePreviewVideoRect(layout: layout, navigationHeight: navigationBarHeight)
         
-        if let removedMinimizedVideoNodeValue = self.removedMinimizedVideoNodeValue {
-            self.removedMinimizedVideoNodeValue = nil
+        if let removedMinimizedVideoNodeValue = self.removedMinimizedVideoNode {
+            self.removedMinimizedVideoNode = nil
             
             if transition.isAnimated {
-                removedMinimizedVideoNodeValue.layer.animateScale(from: 1.0, to: 0.1, duration: 0.3, removeOnCompletion: false)
-                removedMinimizedVideoNodeValue.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.3, removeOnCompletion: false, completion: { [weak removedMinimizedVideoNodeValue] _ in
+                removedMinimizedVideoNodeValue.layer.animateScale(from: 1.0, to: 0.1, duration: 5, removeOnCompletion: false)
+                removedMinimizedVideoNodeValue.layer.animateAlpha(from: 1.0, to: 0.0, duration: 5, removeOnCompletion: false, completion: { [weak removedMinimizedVideoNodeValue] _ in
                     removedMinimizedVideoNodeValue?.removeFromSupernode()
                 })
             } else {
@@ -1799,8 +1820,8 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 self.disableAnimationForExpandedVideoOnce = false
             }
             
-            if let removedExpandedVideoNodeValue = self.removedExpandedVideoNodeValue {
-                self.removedExpandedVideoNodeValue = nil
+            if let removedExpandedVideoNodeValue = self.removedExpandedVideoNode {
+                self.removedExpandedVideoNode = nil
                 
                 expandedVideoTransition.updateFrame(node: expandedVideoNode, frame: fullscreenVideoFrame, completion: { [weak removedExpandedVideoNodeValue] _ in
                     removedExpandedVideoNodeValue?.removeFromSupernode()
@@ -1809,23 +1830,17 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 expandedVideoTransition.updateFrame(node: expandedVideoNode, frame: fullscreenVideoFrame)
             }
             
-            expandedVideoNode.updateLayout(size: expandedVideoNode.frame.size, cornerRadius: 0.0, isOutgoing: expandedVideoNode === self.outgoingVideoNode, deviceOrientation: mappedDeviceOrientation, isCompactLayout: isCompactLayout, transition: expandedVideoTransition)
-            
-            if self.animateRequestedVideoOnce {
-                self.animateRequestedVideoOnce = false
-                if expandedVideoNode === self.outgoingVideoNode {
-                    let videoButtonFrame = self.buttonsNode.videoButtonFrame().flatMap { frame -> CGRect in
-                        return self.buttonsNode.view.convert(frame, to: self.view)
-                    }
-                    
-                    if let previousVideoButtonFrame = previousVideoButtonFrame, let videoButtonFrame = videoButtonFrame {
-                        expandedVideoNode.animateRadialMask(from: previousVideoButtonFrame, to: videoButtonFrame)
-                    }
-                }
-            }
+            expandedVideoNode.updateLayout(
+                size: expandedVideoNode.frame.size,
+                cornerRadius: 0.0,
+                isOutgoing: expandedVideoNode === self.outgoingVideoNode,
+                deviceOrientation: mappedDeviceOrientation,
+                isCompactLayout: isCompactLayout,
+                transition: expandedVideoTransition
+            )
         } else {
-            if let removedExpandedVideoNodeValue = self.removedExpandedVideoNodeValue {
-                self.removedExpandedVideoNodeValue = nil
+            if let removedExpandedVideoNodeValue = self.removedExpandedVideoNode {
+                self.removedExpandedVideoNode = nil
                 
                 if transition.isAnimated {
                     removedExpandedVideoNodeValue.layer.animateScale(from: 1.0, to: 0.1, duration: 0.3, removeOnCompletion: false)
