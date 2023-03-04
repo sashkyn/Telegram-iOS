@@ -602,7 +602,6 @@ class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             
             if emojiFile == nil {
                 emojiFile = item.associatedData.animatedEmojiStickers[emoji]?.first?.file
-                //print("heheheh - \(item.associatedData.animatedEmojiStickers.keys)")
             }
             if emojiFile == nil {
                 emojiFile = item.associatedData.animatedEmojiStickers[emoji.strippedEmoji]?.first?.file

@@ -224,7 +224,6 @@ final class ChatTextInputMediaRecordingButton: TGModernConversationInputMicButto
                 }
                 if let audioRecorder = self.audioRecorder {
                     self.micLevelDisposable?.set(audioRecorder.micLevel.start(next: { [weak self] level in
-                        print("INFO LOGS - setted level - \(level)")
                         // INFO: здесь сетается уровень микрофона для оверлейя бабла
                         Queue.mainQueue().async {
                             //self?.recordingOverlay?.addImmediateMicLevel(CGFloat(level))
