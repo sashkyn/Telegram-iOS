@@ -11,10 +11,6 @@ import TelegramAnimatedStickerNode
 import ShimmerEffect
 import StickerResources
 
-// TODO: сделать динамический style black или light для effectView для видео и нет
-// TODO: сделать анимацию появления и убирания
-// TODO: сделать состояния кнопки ок
-
 // INFO: вьюшка с эмодзями на полный экран
 final class CallEmojiKeyPreviewNode: ASDisplayNode {
     private let keyTextNode: ASTextNode

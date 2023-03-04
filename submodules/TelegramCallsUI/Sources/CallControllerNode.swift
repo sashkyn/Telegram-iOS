@@ -123,8 +123,7 @@ private final class CallVideoNode: ASDisplayNode, PreviewVideoNode {
         }
         
         if assumeReadyAfterTimeout {
-            // TODO: откатить это - для симулятора тест
-            self.isReadyTimer = SwiftSignalKit.Timer(timeout: 0.2, repeat: false, completion: { [weak self] in
+            self.isReadyTimer = SwiftSignalKit.Timer(timeout: 3.0, repeat: false, completion: { [weak self] in
                 guard let strongSelf = self else {
                     return
                 }
@@ -726,9 +725,9 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                                     // INFO: сетаем временную камеру прям только после закрытия контроллера
                                     
                                     // TODO: сделать обработку фейкового видео если видео на звонке еще нет
-                                    if strongSelf.expandedVideoNode != nil {
-                                        strongSelf.tempVideoAfterDismissCamera = outgoingVideoNode
-                                    }
+//                                    if strongSelf.expandedVideoNode != nil {
+//                                        strongSelf.tempVideoAfterDismissCamera = outgoingVideoNode
+//                                    }
                                     
                                     strongSelf.displayedCameraConfirmation = true
                                     strongSelf.call.requestVideo()
@@ -755,9 +754,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                                     }
                                 )
                                 strongSelf.present?(controller)
-                                
-                                strongSelf.isRequestingVideo = true
-                                strongSelf.updateButtonsMode()
                                 
                                 updateLayoutImpl = { [weak controller] layout, navigationBarHeight in
                                     controller?.containerLayoutUpdated(layout, transition: .immediate)
@@ -2110,16 +2106,16 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 }
                 minimizedVideoTransition.updateFrame(
                     node: minimizedVideoNode,
-                    frame: previewVideoFrame,
-                    completion: { [weak self] _ in
-                        guard let strongSelf = self,
-                              let tempVideoAfterDismissCamera = self?.tempVideoAfterDismissCamera,
-                              strongSelf.tempVideoAppeared else { return }
-
-                        tempVideoAfterDismissCamera.removeFromSupernode()
-                        strongSelf.tempVideoAfterDismissCamera = nil
-                        strongSelf.tempVideoAppeared = false
-                    }
+                    frame: previewVideoFrame
+//                    completion: { [weak self] _ in
+//                        guard let strongSelf = self,
+//                              let tempVideoAfterDismissCamera = self?.tempVideoAfterDismissCamera,
+//                              strongSelf.tempVideoAppeared else { return }
+//
+//                        tempVideoAfterDismissCamera.removeFromSupernode()
+//                        strongSelf.tempVideoAfterDismissCamera = nil
+//                        strongSelf.tempVideoAppeared = false
+//                    }
                 )
                 minimizedVideoNode.updateLayout(
                     size: previewVideoFrame.size,
