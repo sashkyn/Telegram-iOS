@@ -345,15 +345,6 @@ private final class RatingCloseButtonNode: ASDisplayNode {
         self.closeButtonBluredBackgroundView.layer.cornerRadius = 14.0
         self.closeButtonBluredBackgroundView.clipsToBounds = true
         
-        self.addSubnode(closeWhiteTextNode)
-        
-        self.closeWhiteTextNode.attributedText = NSAttributedString(
-            string: "Close", // TODO: Strings
-            font: Font.regular(17.0),
-            textColor: UIColor.white,
-            paragraphAlignment: .left
-        )
-        
         self.view.addSubview(self.closeButtonFilledBackgoundView)
         self.closeButtonFilledBackgoundView.layer.cornerRadius = 14.0
         self.closeButtonFilledBackgoundView.clipsToBounds = true
@@ -363,8 +354,17 @@ private final class RatingCloseButtonNode: ASDisplayNode {
             string: "Close", // TODO: Strings
             font: Font.regular(17.0),
             textColor: UIColor(rgb: 0xFF7261DA),
-            paragraphAlignment: .right
+            paragraphAlignment: .center
         )
+        
+        self.addSubnode(closeWhiteTextNode)
+        self.closeWhiteTextNode.attributedText = NSAttributedString(
+            string: "Close", // TODO: Strings
+            font: Font.regular(17.0),
+            textColor: UIColor.white,
+            paragraphAlignment: .center
+        )
+        self.closeWhiteTextNode.isHidden = true
     }
     
     override func calculateSizeThatFits(_ constrainedSize: CGSize) -> CGSize {
@@ -382,7 +382,6 @@ private final class RatingCloseButtonNode: ASDisplayNode {
         }
         self.didLayouted = true
         
-        print("call rating: close button layout")
         let closeButtonFrame = CGRect(
             origin: .zero,
             size: frame.size
@@ -390,19 +389,8 @@ private final class RatingCloseButtonNode: ASDisplayNode {
         
         let closeSize = self.closePurpleTextNode.measure(
             .init(
-                width: CGFloat.greatestFiniteMagnitude,
-                height: CGFloat.greatestFiniteMagnitude
-            )
-        )
-        
-        // INFO: обновляем фрейм у лейбла белого текста
-        transition.updateFrame(
-            node: self.closeWhiteTextNode,
-            frame: .init(
-                x: floor(closeButtonFrame.width - closeSize.width) / 2,
-                y: floor(closeButtonFrame.height - closeSize.height) / 2,
-                width: closeSize.width,
-                height: closeSize.height
+                width: closeButtonFrame.width,
+                height: closeButtonFrame.height
             )
         )
         
@@ -410,9 +398,20 @@ private final class RatingCloseButtonNode: ASDisplayNode {
         transition.updateFrame(
             node: self.closePurpleTextNode,
             frame: .init(
-                x: floor(closeButtonFrame.width - closeSize.width) / 2,
+                x: 0.0,
                 y: floor(closeButtonFrame.height - closeSize.height) / 2,
-                width: closeSize.width,
+                width: closeButtonFrame.width,
+                height: closeSize.height
+            )
+        )
+        
+        // INFO: обновляем фрейм у лейбла белого текста
+        transition.updateFrame(
+            node: self.closeWhiteTextNode,
+            frame: .init(
+                x: 0.0,
+                y: floor(closeButtonFrame.height - closeSize.height) / 2,
+                width: closeButtonFrame.width,
                 height: closeSize.height
             )
         )
@@ -455,17 +454,19 @@ private final class RatingCloseButtonNode: ASDisplayNode {
             ),
             to: closeButtonFrame,
             completion: { [weak self] _ in
-                guard let self else {
+                guard let strongSelf = self else {
                     return
                 }
-                self.closeButtonFilledBackgoundView.frame = closeButtonFrame
+                strongSelf.closeWhiteTextNode.isHidden = false
+                
+                let transition = ContainedViewLayoutTransition.immediate
                 
                 let closingTransition = ContainedViewLayoutTransition.animated(
                     duration: 8.0,
                     curve: .linear
                 )
                 closingTransition.animateFrame(
-                    layer: self.closeButtonFilledBackgoundView.layer,
+                    layer: strongSelf.closeButtonFilledBackgoundView.layer,
                     from: closeButtonFrame,
                     to: .init(
                         x: closeButtonFrame.maxX,
@@ -480,38 +481,36 @@ private final class RatingCloseButtonNode: ASDisplayNode {
                 )
                 
                 // Animation of change color
+                let maskLayer = CAShapeLayer()
+                maskLayer.frame = CGRect(
+                    origin: .zero,
+                    size: .init(
+                        width: 1,
+                        height: strongSelf.closeWhiteTextNode.frame.height
+                    )
+                )
                 
-                // TODO: передалать градиентность цветов
+                let path = CGMutablePath()
+                path.addEllipse(
+                    in: .init(
+                        origin: .zero,
+                        size: .init(
+                            width: 1,
+                            height: strongSelf.closeWhiteTextNode.frame.height
+                        )
+                    )
+                )
+                maskLayer.path = path
                 
-                let gradientLayer = CAGradientLayer()
-                gradientLayer.frame = self.closePurpleTextNode.bounds
-                gradientLayer.colors = [
-                    UIColor.clear.cgColor,
-                    UIColor(rgb: 0xFF7261DA).cgColor
-                ]
-                gradientLayer.startPoint = CGPoint(x: -1.0, y: 1.0)
-                gradientLayer.endPoint = CGPoint(x: 1.0, y: 1.0)
-
-                let gradientAnimation = CABasicAnimation(keyPath: "startPoint")
-                gradientAnimation.beginTime = CACurrentMediaTime() + 3.0
-                gradientAnimation.fromValue = gradientLayer.startPoint
-                gradientAnimation.toValue = gradientLayer.endPoint
-                gradientAnimation.duration = 1.6
-                gradientAnimation.delegate = self
-
-                gradientLayer.add(gradientAnimation, forKey: "startPoint")
-
-                self.closePurpleTextNode.layer.mask = gradientLayer
+                strongSelf.closeWhiteTextNode.layer.mask = maskLayer
+                
+                let transition: ContainedViewLayoutTransition = .animated(duration: 8.1, curve: .linear)
+                
+                transition.updateTransformScale(
+                    layer: maskLayer,
+                    scale: strongSelf.closeWhiteTextNode.frame.width * 2
+                )
             }
         )
-    }
-}
-
-extension RatingCloseButtonNode: CAAnimationDelegate {
-    
-    func animationDidStop(_ anim: CAAnimation, finished flag: Bool) {
-        self.closePurpleTextNode.layer.mask = nil
-        self.closePurpleTextNode.isHidden = true
-        self.closePurpleTextNode.removeFromSupernode()
     }
 }

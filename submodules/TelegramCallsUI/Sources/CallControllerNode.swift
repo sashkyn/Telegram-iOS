@@ -1349,13 +1349,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         
         if case let .terminated(id, _, reportRating) = callState.state,
            let callId = id {
-            print(reportRating)
-            
-            // INFO: Здесь можно вызвать рейтинг всегда
-            
-            // TODO: удалить перед релизом
-//            let presentRating = reportRating || self.forceReportRating
-            let presentRating = true
+            let presentRating = reportRating || self.forceReportRating
             
             if presentRating {
                 if ratingNode == nil {
@@ -1389,8 +1383,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                     }
                 }
             } else {
-                // TODO: удалить перед релизом
-//                self.callEnded?(false)
+                self.callEnded?(false)
             }
         }
         
@@ -1403,27 +1396,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         guard let callState = self.callState else {
             return
         }
-        print(callState)
-        
-        // TODO: убрать перед релизом
-        // INFO: рандомизация статусов
-//        var toastContent: CallControllerToastContent = []
-//        if Bool.random() {
-//            toastContent.insert(.mute)
-//        }
-//        if Bool.random() {
-//            toastContent.insert(.weakSignal)
-//        }
-//        if Bool.random() {
-//            toastContent.insert(.battery)
-//        }
-//        if Bool.random() {
-//            toastContent.insert(.camera)
-//        }
-//        if Bool.random() {
-//            toastContent.insert(.microphone)
-//        }
-//        self.toastContent = toastContent
         
         if case .terminating = callState.state {
         } else if case .terminated = callState.state {
