@@ -1325,7 +1325,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                     break
             }
         }
-        if let titleStatusValue {
+        if let titleStatusValue = titleStatusValue {
             self.statusNode.title = titleStatusValue
         }
         self.statusNode.status = statusValue
@@ -1383,10 +1383,10 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                         },
                         onRating: { [weak self] rating in
                             print("call rating: onRating - \(rating)")
-                            guard let self else {
+                            guard let strongSelf = self else {
                                 return
                             }
-                            self.rateCall?(callId, self.call.isVideo, rating)
+                            strongSelf.rateCall?(callId, strongSelf.call.isVideo, rating)
                             
                         }
                     )
@@ -1838,7 +1838,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         transition.updateAlpha(node: self.videoDimNode, alpha: pinchTransitionAlpha)
         transition.updateFrame(node: self.videoDimNode, frame: containerFullScreenFrame)
         
-        if let keyPreviewNode {
+        if let keyPreviewNode = self.keyPreviewNode {
             transition.updateFrame(node: keyPreviewNode, frame: containerFullScreenFrame)
             keyPreviewNode.updateLayout(
                 size: layout.size,
@@ -1847,7 +1847,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             )
         }
         
-        if let ratingNode {
+        if let ratingNode = self.ratingNode {
             self.avatarNode.update(audioBlobState: .disabled)
             
             // TODO: здесь можно посетать статус и имя на ended
@@ -2034,8 +2034,8 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         
         // TODO: сделать так чтобы снапшот переезжал, а не камера
         
-        if let expandedVideoNode,
-           let tempVideoAfterDismissCamera {
+        if let expandedVideoNode = self.expandedVideoNode,
+           let tempVideoAfterDismissCamera = self.tempVideoAfterDismissCamera {
             expandedVideoNode.supernode?.insertSubnode(
                 tempVideoAfterDismissCamera,
                 aboveSubnode: expandedVideoNode
@@ -2058,20 +2058,20 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             )
             
             Queue.mainQueue().after(0.3) { [weak self, weak tempVideoAfterDismissCamera] in
-                guard let self, let tempVideoAfterDismissCamera else { return }
+                guard let strongSelf = self, let tempVideoAfterDismissCamera = tempVideoAfterDismissCamera else { return }
                 
-                let previewVideoFrame = self.calculatePreviewVideoRect(layout: layout, navigationHeight: navigationBarHeight)
+                let previewVideoFrame = strongSelf.calculatePreviewVideoRect(layout: layout, navigationHeight: navigationBarHeight)
                 print("minimized fake frame - \(previewVideoFrame)")
                 transition.updateFrame(
                     node: tempVideoAfterDismissCamera,
                     frame: previewVideoFrame,
                     completion: { _ in
-                        self.tempVideoAppeared = true
+                        strongSelf.tempVideoAppeared = true
                     }
                 )
                 tempVideoAfterDismissCamera.updateLayout(
                     size: previewVideoFrame.size,
-                    cornerRadius: interpolate(from: 14.0, to: 24.0, value: self.pictureInPictureTransitionFraction),
+                    cornerRadius: interpolate(from: 14.0, to: 24.0, value: strongSelf.pictureInPictureTransitionFraction),
                     isOutgoing: true,
                     deviceOrientation: mappedDeviceOrientation,
                     isCompactLayout: layout.metrics.widthClass == .compact,
@@ -2107,13 +2107,13 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                     node: minimizedVideoNode,
                     frame: previewVideoFrame,
                     completion: { [weak self] _ in
-                        guard let self,
-                              let tempVideoAfterDismissCamera = self.tempVideoAfterDismissCamera,
-                              self.tempVideoAppeared else { return }
+                        guard let strongSelf = self,
+                              let tempVideoAfterDismissCamera = self?.tempVideoAfterDismissCamera,
+                              strongSelf.tempVideoAppeared else { return }
 
                         tempVideoAfterDismissCamera.removeFromSupernode()
-                        self.tempVideoAfterDismissCamera = nil
-                        self.tempVideoAppeared = false
+                        strongSelf.tempVideoAfterDismissCamera = nil
+                        strongSelf.tempVideoAppeared = false
                     }
                 )
                 minimizedVideoNode.updateLayout(
