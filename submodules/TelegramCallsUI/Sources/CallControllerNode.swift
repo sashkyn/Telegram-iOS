@@ -1192,7 +1192,8 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                     true
                 )
             } else {
-                statusValue = .text(string: self.presentationData.strings.Call_StatusEnded)
+                titleStatusValue = self.presentationData.strings.Call_StatusEnded
+                statusValue = .text(string: "Call did't started")
             }
         }
                 
@@ -2203,9 +2204,17 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
 
         if self.keyPreviewNode == nil, let keyText = self.keyTextData?.1, let peer = self.peer {
             self.avatarNode.update(audioBlobState: .disabled)
-            self.avatarNode.isHidden = true
+            
+            let transition = ContainedViewLayoutTransition.immediate
+            transition.updateAlpha(node: self.avatarNode, alpha: 0.0)
 
-            print(keyText)
+            self.avatarNode.layer.animateScale(from: 1.0, to: 0.0, duration: 0.3)
+            self.avatarNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.3, completion: { [weak self] _ in
+                guard let strongSelf = self else { return }
+                
+                strongSelf.avatarNode.isHidden = true
+                transition.updateAlpha(node: strongSelf.avatarNode, alpha: 1.0)
+            })
 
             let keyPreviewNode = CallEmojiKeyPreviewNode(
                 accountContext: self.call.context,
@@ -2240,12 +2249,18 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     
     @objc func backPressed() {
         if let keyPreviewNode = self.keyPreviewNode {
+            self.avatarNode.isHidden = false
+            self.avatarNode.layer.animateScale(from: 0.0, to: 1.0, duration: 0.3)
+            self.avatarNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.3)
+            
             self.keyPreviewNode = nil
             keyPreviewNode.animateOut(to: self.keyButtonNode.frame, toNode: self.keyButtonNode, completion: { [weak self, weak keyPreviewNode] in
                 self?.keyButtonNode.isHidden = false
+                self?.keyButtonNode.layer.animateScale(from: 0.0, to: 1.0, duration: 0.2)
+                self?.keyButtonNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
+                
                 keyPreviewNode?.removeFromSupernode()
                 self?.avatarNode.update(audioBlobState: .audio)
-                self?.avatarNode.isHidden = false
             })
             self.updateDimVisibility()
         } else if self.hasVideoNodes {

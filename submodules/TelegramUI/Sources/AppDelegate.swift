@@ -446,6 +446,11 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         
         let baseAppBundleId = Bundle.main.bundleIdentifier!
         let appGroupName = "group.\(baseAppBundleId)"
+        
+        // TODO: раскоментить перед релизом
+        //let maybeAppGroupUrl = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName)
+        
+        // TODO: убрать перед релизом
         let maybeAppGroupUrlContainer = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
         let maybeAppGroupUrl = maybeAppGroupUrlContainer?.appendingPathComponent(appGroupName)
         
