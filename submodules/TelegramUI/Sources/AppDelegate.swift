@@ -708,17 +708,16 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             }
         }, siriAuthorization: {
             if #available(iOS 10, *) {
-                return .denied
-//                switch INPreferences.siriAuthorizationStatus() {
-//                    case .authorized:
-//                        return .allowed
-//                    case .denied, .restricted:
-//                        return .denied
-//                    case .notDetermined:
-//                        return .notDetermined
-//                    @unknown default:
-//                        return .notDetermined
-//                }
+                switch INPreferences.siriAuthorizationStatus() {
+                    case .authorized:
+                        return .allowed
+                    case .denied, .restricted:
+                        return .denied
+                    case .notDetermined:
+                        return .notDetermined
+                    @unknown default:
+                        return .notDetermined
+                }
             } else {
                 return .denied
             }

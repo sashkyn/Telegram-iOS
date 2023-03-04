@@ -147,7 +147,7 @@ final class CallControllerToastContainerNode: ASDisplayNode {
                 case .weakSignal:
                     toastContent = CallControllerToastItemNode.Content(
                         key: .weakSignal,
-                        text: "Weak network signal" // TODO: Strings
+                        text: "Weak network signal"
                     )
             }
             let toastHeight = toastNode.update(width: width, content: toastContent, transition: toastTransition)
@@ -277,17 +277,6 @@ class CallControllerToastItemNode: ASDisplayNode {
             self.currentWidth = width
             
             let image: UIImage? = nil
-//            switch content.image {
-//                case .camera:
-//                    image = generateTintedImage(image: UIImage(bundleImageName: "Call/CallToastCamera"), color: .white)
-//                case .microphone:
-//                    image = generateTintedImage(image: UIImage(bundleImageName: "Call/CallToastMicrophone"), color: .white)
-//                case .battery:
-//                    image = generateTintedImage(image: UIImage(bundleImageName: "Call/CallToastBattery"), color: .white)
-//                default:
-//                    image = nil
-//            }
-            
             if transition.isAnimated, let image = image, let previousContent = self.iconNode.image {
                 self.iconNode.image = image
                 self.iconNode.layer.animate(from: previousContent.cgImage!, to: image.cgImage!, keyPath: "contents", timingFunction: CAMediaTimingFunctionName.easeInEaseOut.rawValue, duration: 0.2)
@@ -334,10 +323,6 @@ class CallControllerToastItemNode: ASDisplayNode {
     }
     
     func animateIn() {
-//        let targetFrame = self.clipNode.frame
-//        let initialFrame = CGRect(x: floor((self.frame.width - 44.0) / 2.0), y: 0.0, width: 44.0, height: 28.0)
-//
-//        self.clipNode.frame = initialFrame
         self.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.4)
         self.layer.animateSpring(from: 0.01 as NSNumber, to: 1.0 as NSNumber, keyPath: "transform.scale", duration: 0.4)
     }

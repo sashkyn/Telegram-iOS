@@ -236,32 +236,19 @@ public final class CallController: ViewController {
         
         self.controllerNode.rateCall = { [weak self] callId, isVideo, rating in
             guard let self else { return }
-            
-            // TODO: сделать колбек на вызов этого контроллера с фидбеком
-//            if rating < 4 {
-//
-//                //self.push(callFeedbackController(sharedContext: self.sharedContext, account: self.account, callId: callId, rating: rating, userInitiated: false, isVideo: isVideo))
-//            } else {
-//                let _ = rateCallAndSendLogs(
-//                    engine: TelegramEngine(account: self.account),
-//                    callId: callId,
-//                    starsCount: rating,
-//                    comment: "",
-//                    userInitiated: false,
-//                    includeLogs: false
-//                ).start()
-//                print("call rating: rating successfully sent - \(rating)")
-//            }
-            
-            let _ = rateCallAndSendLogs(
-                engine: TelegramEngine(account: self.account),
-                callId: callId,
-                starsCount: rating,
-                comment: "",
-                userInitiated: false,
-                includeLogs: false
-            ).start()
-            print("call rating: rating successfully sent - \(rating)")
+
+            if rating < 4 {
+                self.push(callFeedbackController(sharedContext: self.sharedContext, account: self.account, callId: callId, rating: rating, userInitiated: false, isVideo: isVideo))
+            } else {
+                let _ = rateCallAndSendLogs(
+                    engine: TelegramEngine(account: self.account),
+                    callId: callId,
+                    starsCount: rating,
+                    comment: "",
+                    userInitiated: false,
+                    includeLogs: false
+                ).start()
+            }
         }
 
         self.controllerNode.presentCallRating = { [weak self] callId, isVideo in

@@ -162,8 +162,6 @@ private class CallPreviewCameraVideoNode: ViewControllerTracingNode, UIScrollVie
         self.cameraNode = cameraNode
         self.cameraNode.backgroundColor = UIColor(rgb: 0x000000)
         
-        // TODO: убрать скролл вью
-        
         self.wrappingScrollNode = ASScrollNode()
         self.wrappingScrollNode.view.alwaysBounceVertical = true
         self.wrappingScrollNode.view.delaysContentTouches = false
@@ -178,7 +176,6 @@ private class CallPreviewCameraVideoNode: ViewControllerTracingNode, UIScrollVie
         self.backgroundNode = ASDisplayNode()
     
         self.contentBackgroundNode = ASDisplayNode()
-//        self.contentBackgroundNode.backgroundColor = UIColor.black
         
         let title =  self.presentationData.strings.VoiceChat_VideoPreviewTitle
         
@@ -186,7 +183,7 @@ private class CallPreviewCameraVideoNode: ViewControllerTracingNode, UIScrollVie
         self.titleNode.attributedText = NSAttributedString(string: title, font: Font.bold(17.0), textColor: UIColor(rgb: 0xffffff))
                 
         self.doneButton = SolidRoundedButtonNode(theme: SolidRoundedButtonTheme(backgroundColor: UIColor(rgb: 0xffffff), foregroundColor: UIColor(rgb: 0x4f5352)), font: .bold, height: 48.0, cornerRadius: 10.0, gloss: false)
-        self.doneButton.title = "Start video" //self.presentationData.strings.VoiceChat_VideoPreviewContinue // TODO: Strings
+        self.doneButton.title = "Start video"
         
         if #available(iOS 12.0, *) {
             let broadcastPickerView = RPSystemBroadcastPickerView(frame: CGRect(x: 0, y: 0, width: 50, height: 52.0))
@@ -202,7 +199,6 @@ private class CallPreviewCameraVideoNode: ViewControllerTracingNode, UIScrollVie
         
         self.previewContainerNode = ASDisplayNode()
         self.previewContainerNode.clipsToBounds = true
-//        self.previewContainerNode.backgroundColor = UIColor(rgb: 0x2b2b2f)
         
         self.shimmerNode = ShimmerEffectForegroundNode(size: 200.0)
         self.previewContainerNode.addSubnode(self.shimmerNode)
@@ -383,10 +379,9 @@ private class CallPreviewCameraVideoNode: ViewControllerTracingNode, UIScrollVie
     
     func animateOut(completion: (() -> Void)? = nil) {
         var dimCompleted = false
-//        var offsetCompleted = true
 
         let internalCompletion: () -> Void = { [weak self] in
-            if dimCompleted { //offsetCompleted {
+            if dimCompleted {
                 self?.dismiss?()
             }
             completion?()
@@ -396,22 +391,6 @@ private class CallPreviewCameraVideoNode: ViewControllerTracingNode, UIScrollVie
             dimCompleted = true
             internalCompletion()
         })
-        
-//        let transition: ContainedViewLayoutTransition = .animated(duration: 5, curve: .easeInOut)
-//
-//        transition.updateFrame(
-//            node: self.cameraNode,
-//            frame: self.controller?.animateOutRect() ?? self.bounds,
-//            completion: { _ in
-//                offsetCompleted = true
-//                internalCompletion()
-//            }
-//        )
-//
-//        transition.updateCornerRadius(
-//            node: self.cameraNode,
-//            cornerRadius: 16
-//        )
     }
     
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
@@ -472,15 +451,6 @@ private class CallPreviewCameraVideoNode: ViewControllerTracingNode, UIScrollVie
                 
         let previewSize: CGSize = layout.size
         let previewFrame: CGRect = CGRect(origin: .zero, size: layout.size)
-//        let previewAspectRatio: CGFloat = 1.85
-//        if isLandscape {
-//            let previewHeight = contentFrame.height
-//            previewSize = CGSize(width: min(contentFrame.width - layout.safeInsets.left - layout.safeInsets.right, ceil(previewHeight * previewAspectRatio)), height: previewHeight)
-//            previewFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((contentFrame.width - previewSize.width) / 2.0), y: 0.0), size: previewSize)
-//        } else {
-//            previewSize = CGSize(width: layout.size.width, height: min(layout.size.height, ceil(layout.size.width * previewAspectRatio)))
-//            previewFrame = CGRect(origin: .zero, size: layout.size)
-//        }
         transition.updateFrame(node: self.previewContainerNode, frame: previewFrame)
         transition.updateFrame(node: self.shimmerNode, frame: CGRect(origin: CGPoint(), size: previewFrame.size))
         self.shimmerNode.update(foregroundColor: UIColor(rgb: 0xffffff, alpha: 0.07))

@@ -12,7 +12,6 @@ final class CallBackgroundNode: ASDisplayNode {
     private let gradientNode: GradientBackgroundNode
     
     init(gradientState: GradientState = .ringingOrCallEnded) {
-        print("call gradient: init")
         self.gradientState = gradientState
         self.spinningState = .stopped
         self.gradientNode = createGradientBackgroundNode(
@@ -41,9 +40,7 @@ final class CallBackgroundNode: ASDisplayNode {
     }
     
     func startSpinning(force: Bool = false) {
-        print("call gradient: startSpinning - force = \(force)")
         guard force || (validLayout != nil && spinningState == .stopped) else {
-            //gradientNode.layer.removeAllAnimations()
             return
         }
         
@@ -55,7 +52,6 @@ final class CallBackgroundNode: ASDisplayNode {
             backwards: false,
             completion: { },
             animationEnd: { [weak self] in
-                print("call gradient: animation end")
                 if self?.spinningState == .spinning {
                     self?.startSpinning(force: true)
                 }
@@ -68,7 +64,6 @@ final class CallBackgroundNode: ASDisplayNode {
             return
         }
         
-        print("call gradient: stopSpinning")
         spinningState = .stopped
         gradientNode.layer.removeAllAnimations()
     }
@@ -90,10 +85,6 @@ final class CallBackgroundNode: ASDisplayNode {
         }
         
         self.gradientNode.updateColors(colors: self.gradientState.colors)
-    }
-    
-    deinit {
-        print("call gradient: deinit")
     }
 }
 

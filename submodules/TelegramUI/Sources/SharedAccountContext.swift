@@ -669,7 +669,6 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                         
                         if let call = call {
                             mainWindow.hostView.containerView.endEditing(true)
-                            // TODO: нужно поменять обратно
                             let callController = CallController(sharedContext: strongSelf, account: call.context.account, call: call, easyDebugAccess: true)
                             strongSelf.callController = callController
                             strongSelf.mainWindow?.present(callController, on: .calls)

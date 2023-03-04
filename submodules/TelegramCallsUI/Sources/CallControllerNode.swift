@@ -854,7 +854,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         self.present?(
             TooltipScreen(
                 account: self.account,
-                text: "Encryption key of this call", //self.presentationData.strings.Call_CameraOrScreenTooltip, // TODO: Stirngs
+                text: "Encryption key of this call",
                 style: .light,
                 icon: .image(generateTintedImage(image: UIImage(bundleImageName: "Call/Lock"), color: .white)),
                 location: .point(location.offsetBy(dx: 0.0, dy: 6.0), .top),
@@ -1240,7 +1240,8 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                     let keyTextSize = self.keyButtonNode.measure(CGSize(width: 200.0, height: 200.0))
                     self.keyButtonNode.frame = CGRect(origin: self.keyButtonNode.frame.origin, size: keyTextSize)
                     
-                    //self.keyButtonNode.animateIn()
+                    self.keyButtonNode.layer.animateScale(from: 0.0, to: 1.0, duration: 0.2)
+                    self.keyButtonNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
                     
                     if let (layout, navigationBarHeight) = self.validLayout {
                         self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
@@ -1387,7 +1388,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             if self.isMuted, let (availableOutputs, _) = self.audioOutputState, availableOutputs.count > 2 {
                 toastContent.insert(.mute)
             }
-            // может в другое место пихнуть?
             if case .active(_, let statusReception, _) = callState.state,
                let statusReception = statusReception,
                statusReception < 2 {
@@ -1781,7 +1781,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 ),
                 size: .init(
                     width: containerFullScreenFrame.width,
-                    height: containerFullScreenFrame.height - statusNode.frame.maxY - 50 - 50 // 50 небольшой инсет
+                    height: containerFullScreenFrame.height - statusNode.frame.maxY - 50 - 50
                 )
             )
             transition.updateFrame(
@@ -1953,8 +1953,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             }
         }
         
-        // TODO: сделать так чтобы снапшот переезжал, а не камера
-        
         if let expandedVideoNode = self.expandedVideoNode,
            let tempVideoAfterDismissCamera = self.tempVideoAfterDismissCamera {
             expandedVideoNode.supernode?.insertSubnode(
@@ -1977,28 +1975,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 isCompactLayout: layout.metrics.widthClass == .compact,
                 transition: immediateTransition
             )
-            
-            Queue.mainQueue().after(0.3) { [weak self, weak tempVideoAfterDismissCamera] in
-                guard let strongSelf = self, let tempVideoAfterDismissCamera = tempVideoAfterDismissCamera else { return }
-                
-                let previewVideoFrame = strongSelf.calculatePreviewVideoRect(layout: layout, navigationHeight: navigationBarHeight)
-                print("minimized fake frame - \(previewVideoFrame)")
-                transition.updateFrame(
-                    node: tempVideoAfterDismissCamera,
-                    frame: previewVideoFrame,
-                    completion: { _ in
-                        strongSelf.tempVideoAppeared = true
-                    }
-                )
-                tempVideoAfterDismissCamera.updateLayout(
-                    size: previewVideoFrame.size,
-                    cornerRadius: interpolate(from: 14.0, to: 24.0, value: strongSelf.pictureInPictureTransitionFraction),
-                    isOutgoing: true,
-                    deviceOrientation: mappedDeviceOrientation,
-                    isCompactLayout: layout.metrics.widthClass == .compact,
-                    transition: transition
-                )
-            }
         }
         
         if let minimizedVideoNode = self.minimizedVideoNode {
@@ -2027,15 +2003,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 minimizedVideoTransition.updateFrame(
                     node: minimizedVideoNode,
                     frame: previewVideoFrame
-//                    completion: { [weak self] _ in
-//                        guard let strongSelf = self,
-//                              let tempVideoAfterDismissCamera = self?.tempVideoAfterDismissCamera,
-//                              strongSelf.tempVideoAppeared else { return }
-//
-//                        tempVideoAfterDismissCamera.removeFromSupernode()
-//                        strongSelf.tempVideoAfterDismissCamera = nil
-//                        strongSelf.tempVideoAppeared = false
-//                    }
                 )
                 minimizedVideoNode.updateLayout(
                     size: previewVideoFrame.size,
@@ -2047,35 +2014,9 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 )
                 
                 if transition.isAnimated && didAppear {
-//                    let immediateTransition = ContainedViewLayoutTransition.immediate
-//
-//                    immediateTransition.updateFrame(
-//                        node: minimizedVideoNode,
-//                        frame: fullscreenVideoFrame
-//                    )
-//
-//                    transition.updateFrame(
-//                        node: minimizedVideoNode,
-//                        frame: previewVideoFrame,
-//                        completion: { [weak self, weak minimizedVideoNode] _ in
-//                            guard let self, let minimizedVideoNode else {
-//                                return
-//                            }
-//
-//                            minimizedVideoNode.updateLayout(
-//                                size: previewVideoFrame.size,
-//                                cornerRadius: interpolate(from: 14.0, to: 24.0, value: self.pictureInPictureTransitionFraction),
-//                                isOutgoing: minimizedVideoNode === self.outgoingVideoNode,
-//                                deviceOrientation: mappedDeviceOrientation,
-//                                isCompactLayout: layout.metrics.widthClass == .compact,
-//                                transition: minimizedVideoTransition
-//                            )
-//                        }
-//                    )
                     minimizedVideoNode.layer.animateSpring(from: 0.1 as NSNumber, to: 1.0 as NSNumber, keyPath: "transform.scale", duration: 0.5)
                 }
                 
-                print("minimized real frame - \(previewVideoFrame)")
                 self.animationForExpandedVideoSnapshotView = nil
             }
         }
@@ -2127,8 +2068,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     }
     
     @objc func keyPressed() {
-        //self.displayEmojiTooltip()
-
         if self.keyPreviewNode == nil, let keyText = self.keyTextData?.1, let peer = self.peer {
             self.avatarNode.update(audioBlobState: .disabled)
             
@@ -2147,7 +2086,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 accountContext: self.call.context,
                 animatedStickerFiles: self.keyAnimatedStickerFiles,
                 keyText: keyText,
-                titleText: "This call is end-to end encrypted", // TODO: Strings
+                titleText: "This call is end-to end encrypted",
                 infoText: self.presentationData.strings.Call_EmojiDescription(EnginePeer(peer).compactDisplayTitle).string.replacingOccurrences(of: "%%", with: "%"),
                 dismiss: { [weak self] in
                     if let _ = self?.keyPreviewNode {

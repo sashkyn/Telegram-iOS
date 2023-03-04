@@ -66,7 +66,6 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
         
         super.init()
 
-        // TODO: сделать ее с анимированными эмодзями
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = .center
         
@@ -96,7 +95,7 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
         self.separatorButtonNode.backgroundColor = UIColor.black.withAlphaComponent(0.4)
         
         self.okButtonNode.setTitle(
-            "OK", // TODO: Strings
+            "OK",
             with: Font.regular(20.0),
             with: UIColor.white,
             for: .normal
@@ -382,54 +381,6 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
         } else {
             transition.updateAlpha(node: self.keyTextNode, alpha: 0.0)
         }
-        
-//        transition.updateFrame(
-//            node: self.containerNode,
-//            frame: .init(
-//                origin: rect.origin,
-//                size: rect.size
-//            )
-//        )
-        
-//        let scale = 0.75
-//        let targetFrame = CGRect(origin: .init(x: rect.minX - 16, y: rect.minY - 6), size: rect.size)
-//        let keyTransition = ContainedViewLayoutTransition.animated(duration: 0.4, curve: .easeInOut)
-//        if animatedEmoji {
-//            keyTransition.updateTransformScale(node: self.animatedKeysStickerContainer, scale: 0.75)
-//            keyTransition.updateFrame(
-//                node: self.animatedKeysStickerContainer,
-//                frame: targetFrame
-//            )
-//
-//            animatedKeysStickerContainer.subnodes?
-//                .compactMap { $0 as? StickerNode }
-//                .enumerated()
-//                .forEach { index, node in
-//                    keyTransition.updateTransformScale(node: node, scale: 1.0)
-//                    keyTransition.updateFrame(
-//                        node: node,
-//                        frame: .init(
-//                            x: (index == 0 ? 0.0 : (48.0 + 6) * CGFloat(index) * scale),
-//                            y: 0.0,
-//                            width: node.frame.width * scale,
-//                            height: node.frame.height * scale
-//                        ),
-//                        completion: { _ in
-//                            completion?()
-//                        }
-//                    )
-//                }
-//
-//        } else {
-//            keyTransition.updateTransformScale(node: self.keyTextNode, scale: scale)
-//            keyTransition.updateFrame(
-//                node: self.keyTextNode,
-//                frame: rect,
-//                completion: { _ in
-//                    completion?()
-//                }
-//            )
-//        }
     }
     
     @objc func tapGesture(_ recognizer: UITapGestureRecognizer) {
@@ -462,7 +413,6 @@ private class StickerNode: ASDisplayNode {
         self.imageNode = TransformImageNode()
     
         let animationNode = DefaultAnimatedStickerNodeImpl()
-        //let animationNode = DirectAnimatedStickerNode()
         animationNode.automaticallyLoadFirstFrame = true
         self.animationNode = animationNode
         

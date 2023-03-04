@@ -398,8 +398,7 @@ final class CallControllerButtonsNode: ASDisplayNode {
                     isEnabled: isEnabled,
                     hasProgress: isInitializing
                 )
-                //buttonText = strings.Call_Camera
-                buttonText = "video" // TODO: локализация
+                buttonText = "video"
                 buttonAccessibilityLabel = buttonText
                 if !isEnabled {
                     buttonAccessibilityTraits.insert(.notEnabled)
