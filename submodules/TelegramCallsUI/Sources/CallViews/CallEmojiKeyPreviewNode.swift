@@ -144,29 +144,16 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
         
         self.validLayout = size
         
-        // INFO: размещение бекграунда
         let alertWidth: CGFloat = size.width - 45.0 * 2
-        let alertHeight: CGFloat = 225.0
-        let alertSize = CGSize(
-            width: alertWidth,
-            height: alertHeight
-        )
-        
-        let alertFrame = CGRect(
-            origin: CGPoint(
-                x: floor((size.width - alertWidth) / 2),
-                y: topOffset
-            ),
-            size: alertSize
-        )
-        self.effectView.frame = alertFrame
+        let alertX = floor((size.width - alertWidth) / 2)
+        let alertY = topOffset
         
         // Key
-        let keyTextSize = self.keyTextNode.measure(alertSize)
+        let keyTextSize = self.keyTextNode.measure(.init(width: alertWidth, height: .greatestFiniteMagnitude))
         let keyTextFrame = CGRect(
             origin: CGPoint(
                 x: floor((size.width - keyTextSize.width) / 2),
-                y: alertFrame.minY + 20.0
+                y: alertY + 20.0
             ),
             size: keyTextSize
         )
@@ -229,19 +216,20 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
         // Info
         let infoTextSize = self.infoTextNode.measure(
             CGSize(
-                width: alertWidth - 16,
+                width: alertWidth - 16 - 16,
                 height: .greatestFiniteMagnitude
             )
         )
+        let infoTextFrame = CGRect(
+            origin: CGPoint(
+                x: floor((size.width - infoTextSize.width) / 2),
+                y: self.titleTextNode.frame.maxY + 10.0
+            ),
+            size: infoTextSize
+        )
         transition.updateFrame(
             node: self.infoTextNode,
-            frame: CGRect(
-                origin: CGPoint(
-                    x: floor((size.width - infoTextSize.width) / 2),
-                    y: self.titleTextNode.frame.maxY + 10.0
-                ),
-                size: infoTextSize
-            )
+            frame: infoTextFrame
         )
         
         // Separator
@@ -249,8 +237,8 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
             node: self.separatorButtonNode,
             frame: CGRect(
                 origin: CGPoint(
-                    x: alertFrame.minX,
-                    y: alertFrame.maxY - 57.0
+                    x: alertX,
+                    y: infoTextFrame.maxY + 10
                 ),
                 size: CGSize(
                     width: alertWidth,
@@ -264,7 +252,7 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
             node: self.okButtonNode,
             frame: CGRect(
                 origin: CGPoint(
-                    x: alertFrame.minX,
+                    x: alertX,
                     y: self.separatorButtonNode.frame.maxY + 1.0
                 ),
                 size: CGSize(
@@ -273,6 +261,22 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
                 )
             )
         )
+        
+        // INFO: размещение бекграунда
+        let alertHeight: CGFloat = self.okButtonNode.frame.maxY - alertY
+        let alertSize = CGSize(
+            width: alertWidth,
+            height: alertHeight
+        )
+        
+        let alertFrame = CGRect(
+            origin: CGPoint(
+                x: floor((size.width - alertWidth) / 2),
+                y: alertY
+            ),
+            size: alertSize
+        )
+        self.effectView.frame = alertFrame
     }
     
     func animateIn(from rect: CGRect, fromNode: ASDisplayNode) {

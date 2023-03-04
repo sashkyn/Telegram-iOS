@@ -1850,8 +1850,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         if let ratingNode = self.ratingNode {
             self.avatarNode.update(audioBlobState: .disabled)
             
-            // TODO: здесь можно посетать статус и имя на ended
-            
             let rect = CGRect(
                 origin: .init(
                     x: 0.0,
@@ -1903,7 +1901,12 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             if layout.size.height.isEqual(to: 736.0) {
                 avatarOffset = 186.0
             } else if layout.size.width.isEqual(to: 320.0) {
-                avatarOffset = 166.0
+                switch buttonsMode {
+                case .incoming:
+                    avatarOffset = 50
+                default:
+                    avatarOffset = 134.0
+                }
             } else {
                 avatarOffset = 174.0
             }
@@ -2178,44 +2181,43 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     
     @objc func keyPressed() {
         // INFO: временно показываю тултип по нажатию
-        self.displayEmojiTooltip()
-        
-        // TODO: раскомментить
-//        if self.keyPreviewNode == nil, let keyText = self.keyTextData?.1, let peer = self.peer {
-//            self.avatarNode.update(audioBlobState: .disabled)
-//            self.avatarNode.isHidden = true
-//
-//            print(keyText)
-//
-//            let keyPreviewNode = CallEmojiKeyPreviewNode(
-//                accountContext: self.call.context,
-//                animatedStickerFiles: self.keyAnimatedStickerFiles,
-//                keyText: keyText,
-//                titleText: "This call is end-to end encrypted", // TODO: Strings
-//                infoText: self.presentationData.strings.Call_EmojiDescription(EnginePeer(peer).compactDisplayTitle).string.replacingOccurrences(of: "%%", with: "%"),
-//                dismiss: { [weak self] in
-//                    if let _ = self?.keyPreviewNode {
-//                        self?.backPressed()
-//                    }
-//                }
-//            )
-//
-//            self.containerNode.addSubnode(keyPreviewNode)
-//            self.keyPreviewNode = keyPreviewNode
-//
-//            if let (validLayout, _) = self.validLayout {
-//                keyPreviewNode.updateLayout(
-//                    size: validLayout.size,
-//                    topOffset: self.avatarNode.frame.minY - 80,
-//                    transition: .immediate
-//                )
-//
-//                self.keyButtonNode.isHidden = true
-//                keyPreviewNode.animateIn(from: self.keyButtonNode.frame, fromNode: self.keyButtonNode)
-//            }
-//
-//            self.updateDimVisibility()
-//        }
+        //self.displayEmojiTooltip()
+
+        if self.keyPreviewNode == nil, let keyText = self.keyTextData?.1, let peer = self.peer {
+            self.avatarNode.update(audioBlobState: .disabled)
+            self.avatarNode.isHidden = true
+
+            print(keyText)
+
+            let keyPreviewNode = CallEmojiKeyPreviewNode(
+                accountContext: self.call.context,
+                animatedStickerFiles: self.keyAnimatedStickerFiles,
+                keyText: keyText,
+                titleText: "This call is end-to end encrypted", // TODO: Strings
+                infoText: self.presentationData.strings.Call_EmojiDescription(EnginePeer(peer).compactDisplayTitle).string.replacingOccurrences(of: "%%", with: "%"),
+                dismiss: { [weak self] in
+                    if let _ = self?.keyPreviewNode {
+                        self?.backPressed()
+                    }
+                }
+            )
+
+            self.containerNode.addSubnode(keyPreviewNode)
+            self.keyPreviewNode = keyPreviewNode
+
+            if let (validLayout, _) = self.validLayout {
+                keyPreviewNode.updateLayout(
+                    size: validLayout.size,
+                    topOffset: self.avatarNode.frame.minY - 80,
+                    transition: .immediate
+                )
+
+                self.keyButtonNode.isHidden = true
+                keyPreviewNode.animateIn(from: self.keyButtonNode.frame, fromNode: self.keyButtonNode)
+            }
+
+            self.updateDimVisibility()
+        }
     }
     
     @objc func backPressed() {
