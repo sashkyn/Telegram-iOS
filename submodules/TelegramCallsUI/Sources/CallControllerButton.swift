@@ -280,7 +280,6 @@ final class CallControllerButtonItemNode: HighlightTrackingButtonNode {
                 case .accept:
                     image = generateTintedImage(image: UIImage(bundleImageName: "Call/CallAcceptButton"), color: imageColor)
                 case .end:
-                    // INFO: картинка для завершения звонка.
                     image = generateTintedImage(image: UIImage(bundleImageName: "Call/CallCancelButton"), color: imageColor)
                 case .cancel:
                     image = generateImage(CGSize(width: 28.0, height: 28.0), opaque: false, rotatedContext: { size, context in

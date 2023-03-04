@@ -12,8 +12,6 @@ import PresentationDataUtils
 import UIKitRuntimeUtils
 import ReplayKit
 
-// INFO: Превью камеры контроллер
-
 final class CallPreviewCameraVideoController: ViewController {
     private var controllerNode: CallPreviewCameraVideoNode {
         return self.displayNode as! CallPreviewCameraVideoNode
@@ -434,8 +432,6 @@ private class CallPreviewCameraVideoNode: ViewControllerTracingNode, UIScrollVie
         }
     }
     
-    // INFO: Layout происходит тут
-    
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
         self.containerLayout = (layout, navigationBarHeight)
         
@@ -454,33 +450,8 @@ private class CallPreviewCameraVideoNode: ViewControllerTracingNode, UIScrollVie
         
         var insets = layout.insets(options: [.statusBar])
         insets.top = max(10.0, insets.top)
-    
-//        let contentSize: CGSize
-//        if isLandscape {
-//            if isTablet {
-//                contentSize = CGSize(width: 870.0, height: 690.0)
-//            } else {
-//                contentSize = CGSize(width: layout.size.width, height: layout.size.height)
-//            }
-//        } else {
-//            if isTablet {
-//                contentSize = CGSize(width: 600.0, height: 960.0)
-//            } else {
-//                // INFO: моя остановочка
-//                contentSize = CGSize(
-//                    width: layout.size.width,
-//                    height: layout.size.height - insets.top - 8.0
-//                )
-//            }
-//        }
-        
-//        let sideInset = floor((layout.size.width - contentSize.width) / 2.0)
+
         let contentFrame = CGRect(origin: .zero, size: layout.size)
-//        if isTablet {
-//            contentFrame = CGRect(origin: CGPoint(x: sideInset, y: floor((layout.size.height - contentSize.height) / 2.0)), size: contentSize)
-//        } else {
-//            contentFrame = CGRect(origin: CGPoint(x: sideInset, y: layout.size.height - contentSize.height), size: contentSize)
-//        }
         
         transition.updateFrame(node: self.backgroundNode, frame: CGRect(origin: CGPoint(), size: layout.size))
         transition.updateFrame(node: self.contentBackgroundNode, frame: CGRect(origin: CGPoint(), size: layout.size))

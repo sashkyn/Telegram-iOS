@@ -1229,7 +1229,6 @@ private final class VoiceChatActionButtonBackgroundNode: ASDisplayNode {
     }
 }
 
-// INFO: бабл с распространением голоса
 private final class VoiceBlobView: UIView {
     private let mediumBlob: BlobView
     private let bigBlob: BlobView
@@ -1556,7 +1555,6 @@ enum VoiceChatActionButtonIconAnimationState: Equatable {
     case hand
 }
 
-// INFO: кнопка с распространением голоса
 final class VoiceChatActionButtonIconNode: ManagedAnimationNode {
     private let isColored: Bool
     private var iconState: VoiceChatActionButtonIconAnimationState = .mute

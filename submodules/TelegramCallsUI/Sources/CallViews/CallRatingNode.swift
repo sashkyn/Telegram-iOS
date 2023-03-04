@@ -38,8 +38,7 @@ final class CallRatingNode: ASDisplayNode {
         
         self.subtitleNode = ASTextNode()
         self.subtitleNode.displaysAsynchronously = false
-        
-        // INFO: генерация звездочек
+
         var starNodes: [ASButtonNode] = []
         for _ in 0 ..< 5 {
             let button = ASButtonNode()
@@ -54,11 +53,9 @@ final class CallRatingNode: ASDisplayNode {
         self.closeButtonNode = RatingCloseButtonNode()
         self.closeButtonNode.displaysAsynchronously = false
         
-        // INFO: блюр для рейтинга
         self.rateEffectView = UIVisualEffectView()
         self.rateEffectView.effect = UIBlurEffect(style: .light)
-        
-        // INFO: анимация звездочек
+
         self.animationStarNode = DefaultAnimatedStickerNodeImpl()
         self.animationStarNode.displaysAsynchronously = false
 
@@ -71,7 +68,7 @@ final class CallRatingNode: ASDisplayNode {
         // Rate This Call
         self.addSubnode(titleNode)
         self.titleNode.attributedText = NSAttributedString(
-            string: "Rate This Call", // TODO: Strings
+            string: "Rate This Call",
             font: Font.bold(16.0),
             textColor: UIColor.white,
             paragraphAlignment: .center
@@ -80,7 +77,7 @@ final class CallRatingNode: ASDisplayNode {
         // Please rate the quality of this call.
         self.addSubnode(subtitleNode)
         self.subtitleNode.attributedText = NSAttributedString(
-            string: "Please rate the quality of this call.", // TODO: Strings
+            string: "Please rate the quality of this call.",
             font: Font.regular(16.0),
             textColor: UIColor.white,
             paragraphAlignment: .center
@@ -325,11 +322,9 @@ private final class RatingCloseButtonNode: ASDisplayNode {
     var animationCompletion: (() -> Void)?
     
     override init() {
-        // INFO: блюр для кнопки
         self.closeButtonBluredBackgroundView = UIVisualEffectView()
         self.closeButtonBluredBackgroundView.effect = UIBlurEffect(style: .light)
         
-        // INFO: анимирующийся белый бекграунд для кнопки
         self.closeButtonFilledBackgoundView = UIView()
         self.closeButtonFilledBackgoundView.backgroundColor = .white
         
@@ -351,7 +346,7 @@ private final class RatingCloseButtonNode: ASDisplayNode {
         
         self.addSubnode(closePurpleTextNode)
         self.closePurpleTextNode.attributedText = NSAttributedString(
-            string: "Close", // TODO: Strings
+            string: "Close",
             font: Font.regular(17.0),
             textColor: UIColor(rgb: 0xFF7261DA),
             paragraphAlignment: .center
@@ -359,7 +354,7 @@ private final class RatingCloseButtonNode: ASDisplayNode {
         
         self.addSubnode(closeWhiteTextNode)
         self.closeWhiteTextNode.attributedText = NSAttributedString(
-            string: "Close", // TODO: Strings
+            string: "Close",
             font: Font.regular(17.0),
             textColor: UIColor.white,
             paragraphAlignment: .center
@@ -405,7 +400,6 @@ private final class RatingCloseButtonNode: ASDisplayNode {
             )
         )
         
-        // INFO: обновляем фрейм у лейбла белого текста
         transition.updateFrame(
             node: self.closeWhiteTextNode,
             frame: .init(
@@ -416,13 +410,11 @@ private final class RatingCloseButtonNode: ASDisplayNode {
             )
         )
         
-        // INFO: настраиваем анимацию у заблюренной части
         let showingBluredTransition = ContainedViewLayoutTransition.animated(
             duration: 0.4,
             curve: .slide
         )
         
-        // INFO: анимируем заблюренную часть
         showingBluredTransition.animateFrame(
             layer: closeButtonBluredBackgroundView.layer,
             from: .init(
@@ -437,13 +429,11 @@ private final class RatingCloseButtonNode: ASDisplayNode {
             }
         )
         
-        // INFO: настраиваем анимацию у белой части
         let showingFilledTransition = ContainedViewLayoutTransition.animated(
             duration: 0.5,
             curve: .slide
         )
         
-        // INFO: анимируем белую часть
         showingFilledTransition.animateFrame(
             layer: closeButtonFilledBackgoundView.layer,
             from: .init(
@@ -458,8 +448,6 @@ private final class RatingCloseButtonNode: ASDisplayNode {
                     return
                 }
                 strongSelf.closeWhiteTextNode.isHidden = false
-                
-                let transition = ContainedViewLayoutTransition.immediate
                 
                 let closingTransition = ContainedViewLayoutTransition.animated(
                     duration: 8.0,

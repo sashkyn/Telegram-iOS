@@ -11,7 +11,6 @@ import TelegramAnimatedStickerNode
 import ShimmerEffect
 import StickerResources
 
-// INFO: вьюшка с эмодзями на полный экран
 final class CallEmojiKeyPreviewNode: ASDisplayNode {
     private let keyTextNode: ASTextNode
     private let titleTextNode: ASTextNode
@@ -211,8 +210,6 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
                 size: titleSize
             )
         )
-        
-        // Info
         let infoTextSize = self.infoTextNode.measure(
             CGSize(
                 width: alertWidth - 16 - 16,
@@ -286,7 +283,6 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
     }
     
     func animateIn(from rect: CGRect, fromNode: ASDisplayNode) {
-        // INFO: Начальные значения
         let immediateTransition = ContainedViewLayoutTransition.immediate
         
         let targetContainerPosition = self.containerNode.frame.origin
@@ -295,10 +291,8 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
         self.containerNode.alpha = 0.0
         
         let targetKeyFrame = self.animatedKeysStickerContainer.frame
-        //let keySize = self.animatedKeysStickerContainer.frame.size
-        let initialKeyScale = 0.75 //rect.size.height / keySize.height
+        let initialKeyScale = 0.75
         
-        // INFO: Анимация эмодзи
         self.animatedKeysStickerContainer.isHidden = !animatedEmoji
         self.keyTextNode.isHidden = animatedEmoji
         
@@ -364,8 +358,6 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
                 frame: targetKeyFrame
             )
         }
-        
-        // INFO: Анимация контейнера
         let transition = ContainedViewLayoutTransition.animated(duration: 0.3, curve: .easeInOut)
         transition.updateAlpha(node: self.containerNode, alpha: 1.0)
         transition.updateTransformScale(node: self.containerNode, scale: 1.0)

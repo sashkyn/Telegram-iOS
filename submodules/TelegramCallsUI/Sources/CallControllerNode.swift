@@ -30,7 +30,6 @@ private final class CallVideoNode: ASDisplayNode, PreviewVideoNode {
     private let videoTransformContainer: ASDisplayNode
     private let videoView: PresentationCallVideoView
     
-    // INFO: view для blur-а видео
     private var blurredEffectView: UIVisualEffectView?
     private var isBlurred: Bool = false
     
@@ -372,17 +371,14 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     private let videoContainerNode: PinchSourceContainerNode
     
     private let backgroundGradientNode: CallBackgroundNode
-    // INFO: оверлей для создания темного градиента поверх video чата
     private let videoDimNode: ASImageNode
     
     private let avatarNode: CallUserAvatarNode
     
-    // INFO: входящие видосы
     private var candidateIncomingVideoNode: CallVideoNode?
     private var incomingVideoNode: CallVideoNode?
     private var incomingVideoViewRequested: Bool = false
     
-    // INFO: исходящие видосы
     private var candidateOutgoingVideoNode: CallVideoNode?
     private var outgoingVideoNode: CallVideoNode?
     private var outgoingVideoViewRequested: Bool = false
@@ -429,42 +425,21 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 self.keyAnimatedStickerFiles = []
                 return
             }
-            print("call sticker values real keys - \(keyText)")
             
             let context = self.call.context
             
-            // INFO: очистка старых стикеров
             self.keyAnimatedStickerFiles = []
-            
-            // INFO: код для релиза
+
             let stickerFiles = keyText
                 .prefix(4)
                 .compactMap { emojiKey in
-                    let file = context.animatedEmojiStickers["\(emojiKey)"]?.first?.file
-                    if file != nil {
-                        print("call sticker values added real emoji - \(emojiKey)")
-                    }
-                    return file
+                    context.animatedEmojiStickers["\(emojiKey)"]?.first?.file
                 }
             
-            // TODO: убрать перед релизом
-            // INFO: Добавление рандомных эмодзи для теста
-//            let stickerFiles = context.animatedEmojiStickers
-//                .keys
-//                .shuffled()
-//                .prefix(4)
-//                .compactMap { emojiKey in
-//                    print("call sticker values added random emoji - \(emojiKey)")
-//                    return context.animatedEmojiStickers["\(emojiKey)"]?.first?.file
-//                }
-            
             if stickerFiles.count < 4 {
-                // Не хватает анимирующихся стикеров, выходим отсюда
-                print("call sticker values not animated return ...")
                 return
             }
-            
-            // INFO: загружаем стикеры
+
             let stickerDownloadSignals = stickerFiles.map { file in
                 freeMediaFileResourceInteractiveFetched(
                     account: context.account,
@@ -476,14 +451,12 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             
             self.stickerPredownloadDisposable.set(
                 (combineLatest(stickerDownloadSignals)).start(completed: { [weak self] in
-                    print("call sticker values download completed")
                     self?.keyAnimatedStickerFiles = stickerFiles
                 })
             )
         }
     }
     
-    // INFO: view c ключами эмодзи
     private let keyButtonNode: CallControllerKeyButton
     
     private var validLayout: (ContainerViewLayout, CGFloat)?
@@ -686,7 +659,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                         }
                         
                         strongSelf.call.makeOutgoingVideoView(completion: { [weak self] outgoingVideoView in
-                            // INFO: экшен на нажатие кнопки камеры, показывается превью
                             guard let strongSelf = self else {
                                 return
                             }
@@ -925,7 +897,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             
             self.toastNode.title = EnginePeer(peer).compactDisplayTitle
             
-            // INFO: Здесь сетается имя пользователя, который звонит
             self.statusNode.title = EnginePeer(peer).displayTitle(strings: self.presentationData.strings, displayOrder: self.presentationData.nameDisplayOrder)
             if hasOther {
                 self.statusNode.subtitle = self.presentationData.strings.Call_AnsweringWithAccount(EnginePeer(accountPeer).displayTitle(strings: self.presentationData.strings, displayOrder: self.presentationData.nameDisplayOrder)).string
@@ -968,7 +939,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     func updateCallState(_ callState: PresentationCallState) {
         self.callState = callState
         
-        // INFO: состояние видео у собеседника
         switch callState.remoteVideoState {
         case .active,
              .paused:
@@ -1058,8 +1028,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 self.incomingVideoViewRequested = false
             }
         }
-        
-        // INFO: если у пользователя появилось видео
         
         switch callState.videoState {
         case .active(false),
@@ -1315,7 +1283,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             self.statusNode.title = titleStatusValue
         }
         self.statusNode.status = statusValue
-        // INFO: Это количество антеннок в UI от 0 до 4.
         self.statusNode.reception = statusReception
         
         if let callState = self.callState {
@@ -1392,7 +1359,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     }
     
     private func updateToastContent() {
-        // INFO: тост со всеми тултип сообщениями для информирования лейблами
         guard let callState = self.callState else {
             return
         }
@@ -1585,7 +1551,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         }
     }
     
-    // INFO: анимация закрытия контроллера
     func animateOut(completion: @escaping () -> Void) {
         self.statusBar.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.3, removeOnCompletion: false)
         if !self.shouldStayHiddenUntilConnection || self.containerNode.alpha > 0.0 {
@@ -1601,7 +1566,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         }
     }
     
-    // INFO: анимация закрытия контроллера если рейтинга нету
     func animateOutIfNotRating(completion: @escaping () -> Void) {
         guard ratingNode != nil else {
             animateOut(completion: completion)
@@ -1846,10 +1810,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         transition.updateAlpha(node: self.backButtonNode, alpha: overlayAlpha)
         transition.updateAlpha(node: self.toastNode, alpha: toastAlpha)
         
-        // INFO: смещение имени пользователя и статуса звонка
-        
-        // Chat GPT: On an iPhone, both the width and height size classes are typically "Compact", since the screen is relatively small. On an iPad, the width and height size classes are usually "Regular", since the screen is larger and can accommodate more content.
-        
         var avatarOffset: CGFloat
         if layout.metrics.widthClass == .regular && layout.metrics.heightClass == .regular {
             if layout.size.height.isEqual(to: 1366.0) {
@@ -1946,8 +1906,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             }
         }
         
-        // INFO: Если есть Expanded видео
-        
         if let expandedVideoNode = self.expandedVideoNode {
             transition.updateAlpha(node: expandedVideoNode, alpha: 1.0)
             var expandedVideoTransition = transition
@@ -2042,8 +2000,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 )
             }
         }
-        
-        // INFO: Если есть Minimized видео
         
         if let minimizedVideoNode = self.minimizedVideoNode {
             transition.updateAlpha(node: minimizedVideoNode, alpha: min(pipTransitionAlpha, pinchTransitionAlpha))
@@ -2171,7 +2127,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     }
     
     @objc func keyPressed() {
-        // INFO: временно показываю тултип по нажатию
         //self.displayEmojiTooltip()
 
         if self.keyPreviewNode == nil, let keyText = self.keyTextData?.1, let peer = self.peer {
@@ -2272,7 +2227,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 if self.hasVideoNodes {
                     let point = recognizer.location(in: recognizer.view)
                     
-                    // INFO: смена камер по нажатию на Minimized
                     if let expandedVideoNode = self.expandedVideoNode,
                        let minimizedVideoNode = self.minimizedVideoNode,
                        minimizedVideoNode.frame.contains(point) {
@@ -2297,7 +2251,6 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                             }
                         }
                     } else {
-                        // INFO: здесь скрывает UI - нажали на ExpandedVideo
                         var updated = false
                         if let callState = self.callState {
                             switch callState.state {

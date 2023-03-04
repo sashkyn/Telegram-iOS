@@ -672,7 +672,6 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                             // TODO: нужно поменять обратно
                             let callController = CallController(sharedContext: strongSelf, account: call.context.account, call: call, easyDebugAccess: true)
                             strongSelf.callController = callController
-                            // INFO: презентится колл контроллер
                             strongSelf.mainWindow?.present(callController, on: .calls)
                             strongSelf.callState.set(call.state
                             |> map(Optional.init))

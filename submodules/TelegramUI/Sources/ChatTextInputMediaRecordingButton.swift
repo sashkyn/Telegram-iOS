@@ -178,7 +178,6 @@ private final class ChatTextInputMediaRecordingButtonPresenter : NSObject, TGMod
     }
 }
 
-// INFO: вроде как кнопка с bubble эффектом
 final class ChatTextInputMediaRecordingButton: TGModernConversationInputMicButton, TGModernConversationInputMicButtonDelegate {
     private var theme: PresentationTheme
     private let strings: PresentationStrings
@@ -224,7 +223,6 @@ final class ChatTextInputMediaRecordingButton: TGModernConversationInputMicButto
                 }
                 if let audioRecorder = self.audioRecorder {
                     self.micLevelDisposable?.set(audioRecorder.micLevel.start(next: { [weak self] level in
-                        // INFO: здесь сетается уровень микрофона для оверлейя бабла
                         Queue.mainQueue().async {
                             //self?.recordingOverlay?.addImmediateMicLevel(CGFloat(level))
                             self?.addMicLevel(CGFloat(level))

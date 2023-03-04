@@ -2579,7 +2579,6 @@ private func avatarGalleryPhotoDatas(account: Account, fileReference: FileMediaR
     }
 }
 
-// INFO: функция, возвращает аватарку аккаунта
 public func chatAvatarGalleryPhoto(account: Account, representations: [ImageRepresentationWithReference], immediateThumbnailData: Data?, autoFetchFullSize: Bool = false, attemptSynchronously: Bool = false, skipThumbnail: Bool = false, skipBlurIfLarge: Bool = false) -> Signal<(TransformImageArguments) -> DrawingContext?, NoError> {
     let signal = avatarGalleryPhotoDatas(account: account, representations: representations, immediateThumbnailData: immediateThumbnailData, autoFetchFullSize: autoFetchFullSize, attemptSynchronously: attemptSynchronously, skipThumbnail: skipThumbnail)
     

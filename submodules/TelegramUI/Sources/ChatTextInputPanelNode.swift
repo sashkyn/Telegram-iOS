@@ -462,7 +462,7 @@ final class ChatTextViewForOverlayContent: UIView, ChatInputPanelViewForOverlayC
         return nil
     }
 }
-// INFO: Node для поля ввода сообщения. Отсюда можно достать Audio bubble.
+
 class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDelegate {
     let clippingNode: ASDisplayNode
     var textPlaceholderNode: ImmediateTextNode

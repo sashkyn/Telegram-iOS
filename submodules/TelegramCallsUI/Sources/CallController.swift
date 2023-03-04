@@ -141,7 +141,6 @@ public final class CallController: ViewController {
         if self.call.isVideoPossible {
             self.displayNode = CallControllerNode(sharedContext: self.sharedContext, account: self.account, presentationData: self.presentationData, statusBar: self.statusBar, debugInfo: self.call.debugInfo(), shouldStayHiddenUntilConnection: !self.call.isOutgoing && self.call.isIntegratedWithCallKit, easyDebugAccess: self.easyDebugAccess, call: self.call)
         } else {
-            // INFO: если видео невозможно используется другой Node
             self.displayNode = LegacyCallControllerNode(sharedContext: self.sharedContext, account: self.account, presentationData: self.presentationData, statusBar: self.statusBar, debugInfo: self.call.debugInfo(), shouldStayHiddenUntilConnection: !self.call.isOutgoing && self.call.isIntegratedWithCallKit, easyDebugAccess: self.easyDebugAccess, call: self.call)
         }
         self.displayNodeDidLoad()
@@ -287,7 +286,6 @@ public final class CallController: ViewController {
         }
         
         self.controllerNode.present = { [weak self] controller in
-            // INFO: здесь делаются презенты других экранов, например превью камеры
             if let strongSelf = self {
                 strongSelf.present(controller, in: .window(.root))
             }

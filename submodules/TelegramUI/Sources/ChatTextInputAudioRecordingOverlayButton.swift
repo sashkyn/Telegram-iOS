@@ -26,7 +26,6 @@ private final class ChatTextInputAudioRecordingOverlayDisplayLinkTarget: NSObjec
     }
 }
 
-// INFO: оверлей с баблом
 final class ChatTextInputAudioRecordingOverlay {
     private weak var anchorView: UIView?
     

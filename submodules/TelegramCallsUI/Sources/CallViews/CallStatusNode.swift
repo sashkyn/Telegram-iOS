@@ -189,8 +189,7 @@ final class CallStatusNode: ASDisplayNode {
             if self.reception != nil {
                 statusOffset += 4.0
             }
-            
-            // INFO: Call Ended offset
+
             statusDisplayLogo = callEnded
             if callEnded {
                 statusOffset += 10.0

@@ -92,7 +92,6 @@ private enum ButtonDescription: Equatable {
     }
 }
 
-// INFO: Группа кнопок с экшенами звонка
 final class CallControllerButtonsNode: ASDisplayNode {
     private var buttonNodes: [ButtonDescription.Key: CallControllerButtonItemNode] = [:]
     
@@ -197,7 +196,6 @@ final class CallControllerButtonsNode: ASDisplayNode {
             videoState = videoStateValue
         }
         
-        // INFO: вот тут распологаются кнопки экшенов вызова
         var buttons: [PlacedButton] = []
         switch mappedState {
         case .incomingRinging:

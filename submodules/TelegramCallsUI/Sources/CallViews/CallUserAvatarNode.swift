@@ -192,7 +192,6 @@ private final class ContentNode: ASDisplayNode {
     }
     
     func updateAudioLevel(color: UIColor, value: Float) {
-        // INFO: инициализация вьюшки аудио волн и все
         if self.audioLevelView == nil, value > 0.0 {
             let blobFrame = self.unclippedNode.bounds.insetBy(dx: -30.0, dy: -30.0)
             
@@ -209,26 +208,20 @@ private final class ContentNode: ASDisplayNode {
             self.view.insertSubview(audioLevelView, at: 0)
         }
         
-//        let level = min(1.0, max(0.0, CGFloat(value)))
         if let audioLevelView = self.audioLevelView {
             audioLevelView.updateLevel(CGFloat(value) * 2.0)
             
-//            let avatarScale: CGFloat
             let audioLevelScale: CGFloat
             if value > 0.0 {
                 audioLevelView.startAnimating()
-//                avatarScale = 1.03 + level * 0.07
                 audioLevelScale = 1.0
             } else {
                 audioLevelView.stopAnimating(duration: 0.5)
-//                avatarScale = 1.0
                 audioLevelScale = 0.01
             }
             
             let transition: ContainedViewLayoutTransition = .animated(duration: 0.2, curve: .easeInOut)
             
-            // INFO: можно использовать для прыгания аватарки
-//            transition.updateSublayerTransformScale(node: self, scale: CGPoint(x: avatarScale, y: avatarScale), beginWithCurrentState: true)
             transition.updateSublayerTransformScale(
                 layer: audioLevelView.layer,
                 scale: CGPoint(x: audioLevelScale, y: audioLevelScale),
