@@ -1377,38 +1377,59 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         guard let callState = self.callState else {
             return
         }
-        if case .terminating = callState.state {
-        } else if case .terminated = callState.state {
-        } else {
-            var toastContent: CallControllerToastContent = []
-            if case .active = callState.state {
-                if let displayToastsAfterTimestamp = self.displayToastsAfterTimestamp {
-                    if CACurrentMediaTime() > displayToastsAfterTimestamp {
-                        if case .inactive = callState.remoteVideoState, self.hasVideoNodes {
-                            toastContent.insert(.camera)
-                        }
-                        if case .muted = callState.remoteAudioState {
-                            toastContent.insert(.microphone)
-                        }
-                        if case .low = callState.remoteBatteryLevel {
-                            toastContent.insert(.battery)
-                        }
-                    }
-                } else {
-                    self.displayToastsAfterTimestamp = CACurrentMediaTime() + 1.5
-                }
-            }
-            if self.isMuted, let (availableOutputs, _) = self.audioOutputState, availableOutputs.count > 2 {
-                toastContent.insert(.mute)
-            }
-            // может в другое место пихнуть?
-            if case .active(_, let statusReception, _) = callState.state,
-               let statusReception = statusReception,
-               statusReception < 2 {
-                toastContent.insert(.weakSignal)
-            }
-            self.toastContent = toastContent
+        print(callState)
+        
+        // INFO: рандомизация статусов
+        var toastContent: CallControllerToastContent = []
+        if Bool.random() {
+            toastContent.insert(.mute)
         }
+        if Bool.random() {
+            toastContent.insert(.weakSignal)
+        }
+        if Bool.random() {
+            toastContent.insert(.battery)
+        }
+        if Bool.random() {
+            toastContent.insert(.camera)
+        }
+        if Bool.random() {
+            toastContent.insert(.microphone)
+        }
+        self.toastContent = toastContent
+        
+//        if case .terminating = callState.state {
+//        } else if case .terminated = callState.state {
+//        } else {
+//            var toastContent: CallControllerToastContent = []
+//            if case .active = callState.state {
+//                if let displayToastsAfterTimestamp = self.displayToastsAfterTimestamp {
+//                    if CACurrentMediaTime() > displayToastsAfterTimestamp {
+//                        if case .inactive = callState.remoteVideoState, self.hasVideoNodes {
+//                            toastContent.insert(.camera)
+//                        }
+//                        if case .muted = callState.remoteAudioState {
+//                            toastContent.insert(.microphone)
+//                        }
+//                        if case .low = callState.remoteBatteryLevel {
+//                            toastContent.insert(.battery)
+//                        }
+//                    }
+//                } else {
+//                    self.displayToastsAfterTimestamp = CACurrentMediaTime() + 1.5
+//                }
+//            }
+//            if self.isMuted, let (availableOutputs, _) = self.audioOutputState, availableOutputs.count > 2 {
+//                toastContent.insert(.mute)
+//            }
+//            // может в другое место пихнуть?
+//            if case .active(_, let statusReception, _) = callState.state,
+//               let statusReception = statusReception,
+//               statusReception < 2 {
+//                toastContent.insert(.weakSignal)
+//            }
+//            self.toastContent = toastContent
+//        }
     }
     
     private func updateDimVisibility(transition: ContainedViewLayoutTransition = .animated(duration: 0.3, curve: .easeInOut)) {
