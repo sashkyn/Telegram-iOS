@@ -105,7 +105,6 @@ private class StickerNode: ASDisplayNode {
     
         if file.isPremiumSticker || forceIsPremium {
             let animationNode = DefaultAnimatedStickerNodeImpl()
-            //let animationNode = DirectAnimatedStickerNode()
             animationNode.automaticallyLoadFirstFrame = true
             self.animationNode = animationNode
             

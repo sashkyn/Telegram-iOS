@@ -50,6 +50,7 @@ private final class TooltipScreenNode: ViewControllerTracingNode {
     private let arrowContainer: ASDisplayNode
     private var arrowEffectView: UIView?
     private let animatedStickerNode: AnimatedStickerNode
+    private let staticImageNode: ASImageNode
     private let textNode: ImmediateTextNode
     
     private var isArrowInverted: Bool = false
@@ -195,6 +196,7 @@ private final class TooltipScreenNode: ViewControllerTracingNode {
         self.textNode.attributedText = stringWithAppliedEntities(text, entities: textEntities, baseColor: .white, linkColor: .white, baseFont: Font.regular(fontSize), linkFont: Font.regular(fontSize), boldFont: Font.semibold(14.0), italicFont: Font.italic(fontSize), boldItalicFont: Font.semiboldItalic(fontSize), fixedFont: Font.monospace(fontSize), blockQuoteFont: Font.regular(fontSize), underlineLinks: true, external: false, message: nil)
         
         self.animatedStickerNode = DefaultAnimatedStickerNodeImpl()
+        self.staticImageNode = ASImageNode()
         switch icon {
         case .none:
             break
@@ -204,6 +206,8 @@ private final class TooltipScreenNode: ViewControllerTracingNode {
         case .info:
             self.animatedStickerNode.setup(source: AnimatedStickerNodeLocalFileSource(name: "anim_infotip"), width: Int(70 * UIScreenScale), height: Int(70 * UIScreenScale), playbackMode: .once, mode: .direct(cachePathPrefix: nil))
             self.animatedStickerNode.automaticallyLoadFirstFrame = true
+        case .image(let image):
+            self.staticImageNode.image = image
         }
         
         super.init()
@@ -227,6 +231,8 @@ private final class TooltipScreenNode: ViewControllerTracingNode {
         }
         self.containerNode.addSubnode(self.textNode)
         self.containerNode.addSubnode(self.animatedStickerNode)
+        self.containerNode.addSubnode(self.staticImageNode)
+        
         self.scrollingContainer.addSubnode(self.containerNode)
         self.addSubnode(self.scrollingContainer)
         
@@ -314,6 +320,10 @@ private final class TooltipScreenNode: ViewControllerTracingNode {
             animationSpacing = 8.0
         case .info:
             animationSize = CGSize(width: 32.0, height: 32.0)
+            animationInset = 0.0
+            animationSpacing = 8.0
+        case .image(let image):
+            animationSize = image?.size ?? .zero
             animationInset = 0.0
             animationSpacing = 8.0
         }
@@ -412,8 +422,21 @@ private final class TooltipScreenNode: ViewControllerTracingNode {
         
         transition.updateFrame(node: self.textNode, frame: CGRect(origin: CGPoint(x: contentInset + animationSize.width + animationSpacing, y: floor((backgroundHeight - textSize.height) / 2.0)), size: textSize))
         
-        transition.updateFrame(node: self.animatedStickerNode, frame: CGRect(origin: CGPoint(x: contentInset - animationInset, y: contentVerticalInset - animationInset), size: CGSize(width: animationSize.width + animationInset * 2.0, height: animationSize.height + animationInset * 2.0)))
+        let animatedStickerNodeFrame = CGRect(origin: CGPoint(x: contentInset - animationInset, y: contentVerticalInset - animationInset), size: CGSize(width: animationSize.width + animationInset * 2.0, height: animationSize.height + animationInset * 2.0))
+        transition.updateFrame(node: self.animatedStickerNode, frame: animatedStickerNodeFrame)
         self.animatedStickerNode.updateLayout(size: CGSize(width: animationSize.width + animationInset * 2.0, height: animationSize.height + animationInset * 2.0))
+        
+        if self.staticImageNode.image != nil {
+            transition.updateFrame(
+                node: self.staticImageNode,
+                frame: .init(
+                    x: contentInset + 2,
+                    y: 5,
+                    width: animationSize.width,
+                    height: animationSize.height
+                )
+            )
+        }
     }
     
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
@@ -474,6 +497,8 @@ private final class TooltipScreenNode: ViewControllerTracingNode {
             animationDelay = 0.2
         case .none:
             animationDelay = 0.0
+        case .image:
+            animationDelay = 0.0
         }
         
         DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + animationDelay, execute: { [weak self] in
@@ -527,6 +552,7 @@ public final class TooltipScreen: ViewController {
     public enum Icon {
         case info
         case chatListPress
+        case image(UIImage?)
     }
     
     public enum DismissOnTouch {

@@ -48,8 +48,8 @@ public struct PresentationCallState: Equatable {
         case ringing
         case requesting(Bool)
         case connecting(Data?)
-        case active(Double, Int32?, Data)
-        case reconnecting(Double, Int32?, Data)
+        case active(Double, _ statusReception: Int32?, Data)
+        case reconnecting(Double, _ statusReception: Int32?, Data)
         case terminating(CallSessionTerminationReason?)
         case terminated(CallId?, CallSessionTerminationReason?, Bool)
     }

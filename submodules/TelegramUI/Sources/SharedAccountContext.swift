@@ -663,13 +663,13 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             |> deliverOnMainQueue).start(next: { [weak self] call in
                 if let strongSelf = self {
                     if call !== strongSelf.callController?.call {
-                        strongSelf.callController?.dismiss()
+                        strongSelf.callController?.waitRatingAndDismiss()
                         strongSelf.callController = nil
                         strongSelf.hasOngoingCall.set(false)
                         
                         if let call = call {
                             mainWindow.hostView.containerView.endEditing(true)
-                            let callController = CallController(sharedContext: strongSelf, account: call.context.account, call: call, easyDebugAccess: !GlobalExperimentalSettings.isAppStoreBuild)
+                            let callController = CallController(sharedContext: strongSelf, account: call.context.account, call: call, easyDebugAccess: true)
                             strongSelf.callController = callController
                             strongSelf.mainWindow?.present(callController, on: .calls)
                             strongSelf.callState.set(call.state
@@ -1633,4 +1633,13 @@ private func peerInfoControllerImpl(context: AccountContext, updatedPresentation
         return PeerInfoScreenImpl(context: context, updatedPresentationData: updatedPresentationData, peerId: peer.id, avatarInitiallyExpanded: avatarInitiallyExpanded, isOpenedFromChat: isOpenedFromChat, nearbyPeerDistance: nil, reactionSourceMessageId: nil, callMessages: [])
     }
     return nil
+}
+
+private class MyController: ViewController {
+    
+    override func loadDisplayNode() {
+        let node = ASDisplayNode()
+        node.backgroundColor = .yellow
+        self.displayNode = node
+    }
 }

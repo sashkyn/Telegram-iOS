@@ -70,7 +70,7 @@ public final class PresentationCallImpl: PresentationCall {
     public var state: Signal<PresentationCallState, NoError> {
         return self.statePromise.get()
     }
-    
+
     private let audioLevelPromise = ValuePromise<Float>(0.0)
     public var audioLevel: Signal<Float, NoError> {
         return self.audioLevelPromise.get()
