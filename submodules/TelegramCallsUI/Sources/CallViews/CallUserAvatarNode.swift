@@ -169,7 +169,7 @@ private final class ContentNode: ASDisplayNode {
             
             context.setBlendMode(.copy)
             context.setFillColor(UIColor.clear.cgColor)
-            context.fillEllipse(in: CGRect(origin: CGPoint(), size: size).insetBy(dx: -1.5, dy: -1.5).offsetBy(dx: spacing - size.width, dy: 0.0))
+            context.fillEllipse(in: CGRect(origin: CGPoint(), size: size).insetBy(dx: 0.0, dy: 0.0).offsetBy(dx: spacing - size.width, dy: 0.0))
         })
     }
     
