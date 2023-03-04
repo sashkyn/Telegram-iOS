@@ -23,6 +23,7 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
     private let separatorButtonNode: ASDisplayNode
     private let okButtonNode: ASButtonNode
     private let effectView: UIVisualEffectView
+    private let containerNode: ASDisplayNode
     
     private let accountContext: AccountContext
     private let animatedKeysStickerContainer: ASDisplayNode
@@ -44,8 +45,10 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
         dismiss: @escaping () -> Void
     ) {
         self.accountContext = accountContext
-        
         self.animatedStickerFiles = animatedStickerFiles
+        
+        self.containerNode = ASDisplayNode()
+        self.containerNode.displaysAsynchronously = false
         
         self.keyTextNode = ASTextNode()
         self.keyTextNode.displaysAsynchronously = false
@@ -95,10 +98,6 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
             paragraphAlignment: .center
         )
         
-        self.view.addSubview(self.effectView)
-        self.effectView.layer.cornerRadius = 20.0
-        self.effectView.clipsToBounds = true
-        
         self.separatorButtonNode.backgroundColor = UIColor.black.withAlphaComponent(0.4)
         
         self.okButtonNode.setTitle(
@@ -108,11 +107,17 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
             for: .normal
         )
         
+        self.containerNode.view.addSubview(self.effectView)
+        self.effectView.layer.cornerRadius = 20.0
+        self.effectView.clipsToBounds = true
+        
+        self.containerNode.addSubnode(self.titleTextNode)
+        self.containerNode.addSubnode(self.infoTextNode)
+        self.containerNode.addSubnode(self.separatorButtonNode)
+        self.containerNode.addSubnode(self.okButtonNode)
+        self.addSubnode(containerNode)
+        
         self.addSubnode(self.keyTextNode)
-        self.addSubnode(self.titleTextNode)
-        self.addSubnode(self.infoTextNode)
-        self.addSubnode(self.separatorButtonNode)
-        self.addSubnode(self.okButtonNode)
         self.addSubnode(self.animatedKeysStickerContainer)
 
         animatedStickerFiles.forEach { file in
@@ -149,65 +154,63 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
         let alertY = topOffset
         
         // Key
-        let keyTextSize = self.keyTextNode.measure(.init(width: alertWidth, height: .greatestFiniteMagnitude))
+        let keyTextSize = self.keyTextNode.measure(.init(width: size.width, height: .greatestFiniteMagnitude))
         let keyTextFrame = CGRect(
             origin: CGPoint(
                 x: floor((size.width - keyTextSize.width) / 2),
-                y: alertY + 20.0
+                y: topOffset + 20.0
             ),
             size: keyTextSize
         )
         
-        if animatedEmoji {
-            // Animated Key
-            transition.updateFrame(
-                node: self.animatedKeysStickerContainer,
-                frame: keyTextFrame
-            )
-            
-            animatedKeysStickerContainer.subnodes?
-                .compactMap { $0 as? StickerNode }
-                .enumerated()
-                .forEach { index, node in
-                    let frame = CGRect(
-                        x: index == 0 ? 0.0 : (48.0 + 6) * CGFloat(index),
-                        y: 0.0,
-                        width: 48.0,
-                        height: 48.0
-                    )
-                    
-                    transition.updateFrame(
-                        node: node,
-                        frame: frame
-                    )
-                    
-                    node.updateLayout(
-                        size: frame.size,
-                        transition: .immediate
-                    )
-                    node.setVisible(true)
-                }
-        } else {
-            // Static Key
-            transition.updateFrame(
-                node: self.keyTextNode,
-                frame: keyTextFrame
-            )
-        }
+        // Animated Key
+        transition.updateFrame(
+            node: self.animatedKeysStickerContainer,
+            frame: keyTextFrame
+        )
+        
+        animatedKeysStickerContainer.subnodes?
+            .compactMap { $0 as? StickerNode }
+            .enumerated()
+            .forEach { index, node in
+                let frame = CGRect(
+                    x: index == 0 ? 0.0 : (48.0 + 6) * CGFloat(index),
+                    y: 0.0,
+                    width: 48.0,
+                    height: 48.0
+                )
+                
+                transition.updateFrame(
+                    node: node,
+                    frame: frame
+                )
+                
+                node.updateLayout(
+                    size: frame.size,
+                    transition: .immediate
+                )
+            }
+        
+        // Static Key
+        transition.updateFrame(
+            node: self.keyTextNode,
+            frame: keyTextFrame
+        )
         
         // Title
         let titleSize = self.titleTextNode.measure(
             CGSize(
-                width: alertWidth - 16,
+                width: alertWidth - 16 - 16,
                 height: .greatestFiniteMagnitude
             )
         )
+        
         transition.updateFrame(
             node: self.titleTextNode,
             frame: CGRect(
                 origin: CGPoint(
-                    x: floor((size.width - titleSize.width) / 2),
-                    y: keyTextFrame.maxY + 10.0
+                    x: floor((alertWidth - titleSize.width) / 2),
+                    y: 20 + keyTextSize.height + 10.0
                 ),
                 size: titleSize
             )
@@ -222,7 +225,7 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
         )
         let infoTextFrame = CGRect(
             origin: CGPoint(
-                x: floor((size.width - infoTextSize.width) / 2),
+                x: floor((alertWidth - infoTextSize.width) / 2),
                 y: self.titleTextNode.frame.maxY + 10.0
             ),
             size: infoTextSize
@@ -237,7 +240,7 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
             node: self.separatorButtonNode,
             frame: CGRect(
                 origin: CGPoint(
-                    x: alertX,
+                    x: 0.0,
                     y: infoTextFrame.maxY + 10
                 ),
                 size: CGSize(
@@ -248,22 +251,23 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
         )
         
         // Ok Button
+        let buttonHeight = 56.0
         transition.updateFrame(
             node: self.okButtonNode,
             frame: CGRect(
                 origin: CGPoint(
-                    x: alertX,
+                    x: 0.0,
                     y: self.separatorButtonNode.frame.maxY + 1.0
                 ),
                 size: CGSize(
                     width: alertWidth,
-                    height: 56.0
+                    height: buttonHeight
                 )
             )
         )
         
-        // INFO: размещение бекграунда
-        let alertHeight: CGFloat = self.okButtonNode.frame.maxY - alertY
+        // Container
+        let alertHeight: CGFloat = 20.0 + keyTextSize.height + 10 + titleSize.height + 10.0 + infoTextSize.height + 10.0 + 1.0 + buttonHeight
         let alertSize = CGSize(
             width: alertWidth,
             height: alertHeight
@@ -271,19 +275,173 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
         
         let alertFrame = CGRect(
             origin: CGPoint(
-                x: floor((size.width - alertWidth) / 2),
+                x: alertX,
                 y: alertY
             ),
             size: alertSize
         )
-        self.effectView.frame = alertFrame
+        
+        transition.updateFrame(
+            node: self.containerNode,
+            frame: alertFrame
+        )
+
+        self.effectView.frame = self.containerNode.bounds
     }
     
     func animateIn(from rect: CGRect, fromNode: ASDisplayNode) {
+        // INFO: Начальные значения
+        let immediateTransition = ContainedViewLayoutTransition.immediate
+        
+        let targetContainerPosition = self.containerNode.frame.origin
+        immediateTransition.updatePosition(node: self.containerNode, position: .init(x: rect.maxX, y: rect.minY))
+        immediateTransition.updateTransformScale(node: self.containerNode, scale: 0.0)
+        self.containerNode.alpha = 0.0
+        
+        let targetKeyFrame = self.animatedKeysStickerContainer.frame
+        //let keySize = self.animatedKeysStickerContainer.frame.size
+        let initialKeyScale = 0.75 //rect.size.height / keySize.height
+        
+        // INFO: Анимация эмодзи
+        self.animatedKeysStickerContainer.isHidden = !animatedEmoji
+        self.keyTextNode.isHidden = animatedEmoji
+        
+        let keyTransition = ContainedViewLayoutTransition.animated(duration: 0.4, curve: .easeInOut)
+        
+        if animatedEmoji {
+            immediateTransition.updateTransformScale(
+                node: self.animatedKeysStickerContainer,
+                scale: initialKeyScale
+            )
+            
+            immediateTransition.updateFrame(
+                node: self.animatedKeysStickerContainer,
+                frame: .init(origin: .init(x: rect.minX - 16, y: rect.minY - 6), size: rect.size)
+            )
+            
+            keyTransition.updateTransformScale(node: self.animatedKeysStickerContainer, scale: 1.0)
+            keyTransition.updateFrame(
+                node: self.animatedKeysStickerContainer,
+                frame: targetKeyFrame
+            )
+            
+            animatedKeysStickerContainer.subnodes?
+                .compactMap { $0 as? StickerNode }
+                .enumerated()
+                .forEach { index, node in
+                    immediateTransition.updateTransformScale(node: node, scale: initialKeyScale)
+                    immediateTransition.updateFrame(
+                        node: node,
+                        frame: .init(
+                            x: (index == 0 ? 0.0 : 48.0 * CGFloat(index)) * initialKeyScale,
+                            y: 0.0,
+                            width: 48.0 * initialKeyScale,
+                            height: 48.0 * initialKeyScale
+                        )
+                    )
+                    node.setVisible(true)
+                    
+                    keyTransition.updateTransformScale(node: node, scale: 1.0)
+                    keyTransition.updateFrame(
+                        node: node,
+                        frame: .init(
+                            x: (index == 0 ? 0.0 : (48.0 + 6) * CGFloat(index)),
+                            y: 0.0,
+                            width: node.frame.width * initialKeyScale,
+                            height: node.frame.height * initialKeyScale
+                        )
+                    )
+                }
+            
+        } else {
+            immediateTransition.updateTransformScale(
+                node: self.keyTextNode,
+                scale: initialKeyScale
+            )
+            immediateTransition.updateFrame(
+                node: self.keyTextNode,
+                frame: rect
+            )
+            keyTransition.updateTransformScale(node: self.keyTextNode, scale: 1.0)
+            keyTransition.updateFrame(
+                node: self.keyTextNode,
+                frame: targetKeyFrame
+            )
+        }
+        
+        // INFO: Анимация контейнера
+        let transition = ContainedViewLayoutTransition.animated(duration: 0.3, curve: .easeInOut)
+        transition.updateAlpha(node: self.containerNode, alpha: 1.0)
+        transition.updateTransformScale(node: self.containerNode, scale: 1.0)
+        
+        transition.updateFrame(
+            node: self.containerNode,
+            frame: .init(
+                origin: targetContainerPosition,
+                size: self.containerNode.frame.size
+            )
+        )
     }
     
-    func animateOut(to rect: CGRect, toNode: ASDisplayNode, completion: @escaping () -> Void) {
-        completion()
+    func animateOut(to rect: CGRect, toNode: ASDisplayNode, completion: (() -> Void)?) {
+        let transition = ContainedViewLayoutTransition.animated(duration: 0.3, curve: .spring)
+        transition.updateAlpha(node: self.containerNode, alpha: 0.0, completion: { _ in
+            completion?()
+        })
+        
+        if animatedEmoji {
+            transition.updateAlpha(node: self.animatedKeysStickerContainer, alpha: 0.0)
+        } else {
+            transition.updateAlpha(node: self.keyTextNode, alpha: 0.0)
+        }
+        
+//        transition.updateFrame(
+//            node: self.containerNode,
+//            frame: .init(
+//                origin: rect.origin,
+//                size: rect.size
+//            )
+//        )
+        
+//        let scale = 0.75
+//        let targetFrame = CGRect(origin: .init(x: rect.minX - 16, y: rect.minY - 6), size: rect.size)
+//        let keyTransition = ContainedViewLayoutTransition.animated(duration: 0.4, curve: .easeInOut)
+//        if animatedEmoji {
+//            keyTransition.updateTransformScale(node: self.animatedKeysStickerContainer, scale: 0.75)
+//            keyTransition.updateFrame(
+//                node: self.animatedKeysStickerContainer,
+//                frame: targetFrame
+//            )
+//
+//            animatedKeysStickerContainer.subnodes?
+//                .compactMap { $0 as? StickerNode }
+//                .enumerated()
+//                .forEach { index, node in
+//                    keyTransition.updateTransformScale(node: node, scale: 1.0)
+//                    keyTransition.updateFrame(
+//                        node: node,
+//                        frame: .init(
+//                            x: (index == 0 ? 0.0 : (48.0 + 6) * CGFloat(index) * scale),
+//                            y: 0.0,
+//                            width: node.frame.width * scale,
+//                            height: node.frame.height * scale
+//                        ),
+//                        completion: { _ in
+//                            completion?()
+//                        }
+//                    )
+//                }
+//
+//        } else {
+//            keyTransition.updateTransformScale(node: self.keyTextNode, scale: scale)
+//            keyTransition.updateFrame(
+//                node: self.keyTextNode,
+//                frame: rect,
+//                completion: { _ in
+//                    completion?()
+//                }
+//            )
+//        }
     }
     
     @objc func tapGesture(_ recognizer: UITapGestureRecognizer) {

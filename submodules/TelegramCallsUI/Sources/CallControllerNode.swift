@@ -1367,8 +1367,9 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             
             // INFO: Здесь можно вызвать рейтинг всегда
             
-            let presentRating = reportRating || self.forceReportRating
-            //let presentRating = true
+            // TODO: удалить перед релизом
+//            let presentRating = reportRating || self.forceReportRating
+            let presentRating = true
             
             if presentRating {
                 if ratingNode == nil {
@@ -1402,7 +1403,8 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                     }
                 }
             } else {
-                self.callEnded?(false)
+                // TODO: удалить перед релизом
+//                self.callEnded?(false)
             }
         }
         

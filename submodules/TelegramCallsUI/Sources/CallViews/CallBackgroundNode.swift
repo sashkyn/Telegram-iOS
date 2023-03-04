@@ -43,7 +43,7 @@ final class CallBackgroundNode: ASDisplayNode {
     func startSpinning(force: Bool = false) {
         print("call gradient: startSpinning - force = \(force)")
         guard force || (validLayout != nil && spinningState == .stopped) else {
-            gradientNode.layer.removeAllAnimations()
+            //gradientNode.layer.removeAllAnimations()
             return
         }
         
