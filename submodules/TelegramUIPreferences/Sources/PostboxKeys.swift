@@ -41,6 +41,8 @@ private enum ApplicationSpecificSharedDataKeyValues: Int32 {
     case drawingSettings = 19
 }
 
+// INFO: Настроечки ищем по voiceCallSettings
+
 public struct ApplicationSpecificSharedDataKeys {
     public static let inAppNotificationSettings = applicationSpecificSharedDataKey(ApplicationSpecificSharedDataKeyValues.inAppNotificationSettings.rawValue)
     public static let presentationPasscodeSettings = applicationSpecificSharedDataKey(ApplicationSpecificSharedDataKeyValues.presentationPasscodeSettings.rawValue)

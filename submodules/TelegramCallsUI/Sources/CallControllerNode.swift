@@ -399,6 +399,8 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     private var displayedCameraConfirmation: Bool = false
     private var displayedCameraTooltip: Bool = false
     
+    private var displayedEmojiTooltip: Bool = false
+    
     private var tempVideoAppeared: Bool = false
     private var tempVideoAfterDismissCamera: CallVideoNode?
     
@@ -445,6 +447,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                     return file
                 }
             
+            // TODO: убрать перед релизом
             // INFO: Добавление рандомных эмодзи для теста
 //            let stickerFiles = context.animatedEmojiStickers
 //                .keys
@@ -472,11 +475,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             }
             
             self.stickerPredownloadDisposable.set(
-                combineLatest(stickerDownloadSignals).start(next: {
-                    print("call sticker values downloaded - \($0.count)")
-                }, error: { error in
-                    print("call sticker values downloaded error - \(error)")
-                }, completed: { [weak self] in
+                (combineLatest(stickerDownloadSignals)).start(completed: { [weak self] in
                     print("call sticker values download completed")
                     self?.keyAnimatedStickerFiles = stickerFiles
                 })
@@ -544,6 +543,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     
     private var audioLevelDisposable: Disposable? = nil
     private var stickerPredownloadDisposable = MetaDisposable()
+    private var settingsDisposable: Disposable? = nil
     
     private var currentRequestedAspect: CGFloat?
     
@@ -856,9 +856,16 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             }
         }
         
-        self.audioLevelDisposable = (call.audioLevel |> deliverOnMainQueue).start(next: { [weak self] audioLevel in
+        self.audioLevelDisposable = (
+            call.audioLevel
+            |> filter { [weak self] _ in !(self?.hasVideoNodes ?? true) }
+            |> deliverOnMainQueue
+        ).start(next: { [weak self] audioLevel in
+            print("call controller new audio level - \(audioLevel)")
             self?.avatarNode.update(audioLevel: audioLevel)
         })
+        
+        self.displayedEmojiTooltip = UserDefaults.standard.bool(forKey: "TGCalls_DidShowEncryptionTooltip")
     }
     
     deinit {
@@ -879,6 +886,28 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         self.present?(TooltipScreen(account: self.account, text: self.presentationData.strings.Call_CameraOrScreenTooltip, style: .light, icon: nil, location: .point(location.offsetBy(dx: 0.0, dy: -14.0), .bottom), displayDuration: .custom(5.0), shouldDismissOnTouch: { _ in
             return .dismiss(consume: false)
         }))
+    }
+    
+    func displayEmojiTooltip() {
+        guard self.pictureInPictureTransitionFraction.isZero else {
+            return
+        }
+        
+        let location = self.containerNode.view.convert(self.keyButtonNode.frame, to: self.view)
+        
+        self.present?(
+            TooltipScreen(
+                account: self.account,
+                text: "Encryption key of this call", //self.presentationData.strings.Call_CameraOrScreenTooltip, // TODO: Stirngs
+                style: .light,
+                icon: .image(generateTintedImage(image: UIImage(bundleImageName: "Call/Lock"), color: .white)),
+                location: .point(location.offsetBy(dx: 0.0, dy: 6.0), .top),
+                displayDuration: .custom(7.0),
+                shouldDismissOnTouch: { _ in
+                    return .dismiss(consume: false)
+                }
+            )
+        )
     }
     
     override func didLoad() {
@@ -1262,6 +1291,15 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                     if let (layout, navigationBarHeight) = self.validLayout {
                         self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
                     }
+                    
+                    if !self.displayedEmojiTooltip {
+                        UserDefaults.standard.set(true, forKey: "TGCalls_DidShowEncryptionTooltip")
+                        self.displayedEmojiTooltip = true
+                        
+                        Queue.mainQueue().after(0.5) { [weak self] in
+                            self?.displayEmojiTooltip()
+                        }
+                    }
                 }
                 
                 statusValue = .timer(
@@ -1379,57 +1417,58 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
         }
         print(callState)
         
+        // TODO: убрать перед релизом
         // INFO: рандомизация статусов
-        var toastContent: CallControllerToastContent = []
-        if Bool.random() {
-            toastContent.insert(.mute)
-        }
-        if Bool.random() {
-            toastContent.insert(.weakSignal)
-        }
-        if Bool.random() {
-            toastContent.insert(.battery)
-        }
-        if Bool.random() {
-            toastContent.insert(.camera)
-        }
-        if Bool.random() {
-            toastContent.insert(.microphone)
-        }
-        self.toastContent = toastContent
-        
-//        if case .terminating = callState.state {
-//        } else if case .terminated = callState.state {
-//        } else {
-//            var toastContent: CallControllerToastContent = []
-//            if case .active = callState.state {
-//                if let displayToastsAfterTimestamp = self.displayToastsAfterTimestamp {
-//                    if CACurrentMediaTime() > displayToastsAfterTimestamp {
-//                        if case .inactive = callState.remoteVideoState, self.hasVideoNodes {
-//                            toastContent.insert(.camera)
-//                        }
-//                        if case .muted = callState.remoteAudioState {
-//                            toastContent.insert(.microphone)
-//                        }
-//                        if case .low = callState.remoteBatteryLevel {
-//                            toastContent.insert(.battery)
-//                        }
-//                    }
-//                } else {
-//                    self.displayToastsAfterTimestamp = CACurrentMediaTime() + 1.5
-//                }
-//            }
-//            if self.isMuted, let (availableOutputs, _) = self.audioOutputState, availableOutputs.count > 2 {
-//                toastContent.insert(.mute)
-//            }
-//            // может в другое место пихнуть?
-//            if case .active(_, let statusReception, _) = callState.state,
-//               let statusReception = statusReception,
-//               statusReception < 2 {
-//                toastContent.insert(.weakSignal)
-//            }
-//            self.toastContent = toastContent
+//        var toastContent: CallControllerToastContent = []
+//        if Bool.random() {
+//            toastContent.insert(.mute)
 //        }
+//        if Bool.random() {
+//            toastContent.insert(.weakSignal)
+//        }
+//        if Bool.random() {
+//            toastContent.insert(.battery)
+//        }
+//        if Bool.random() {
+//            toastContent.insert(.camera)
+//        }
+//        if Bool.random() {
+//            toastContent.insert(.microphone)
+//        }
+//        self.toastContent = toastContent
+        
+        if case .terminating = callState.state {
+        } else if case .terminated = callState.state {
+        } else {
+            var toastContent: CallControllerToastContent = []
+            if case .active = callState.state {
+                if let displayToastsAfterTimestamp = self.displayToastsAfterTimestamp {
+                    if CACurrentMediaTime() > displayToastsAfterTimestamp {
+                        if case .inactive = callState.remoteVideoState, self.hasVideoNodes {
+                            toastContent.insert(.camera)
+                        }
+                        if case .muted = callState.remoteAudioState {
+                            toastContent.insert(.microphone)
+                        }
+                        if case .low = callState.remoteBatteryLevel {
+                            toastContent.insert(.battery)
+                        }
+                    }
+                } else {
+                    self.displayToastsAfterTimestamp = CACurrentMediaTime() + 1.5
+                }
+            }
+            if self.isMuted, let (availableOutputs, _) = self.audioOutputState, availableOutputs.count > 2 {
+                toastContent.insert(.mute)
+            }
+            // может в другое место пихнуть?
+            if case .active(_, let statusReception, _) = callState.state,
+               let statusReception = statusReception,
+               statusReception < 2 {
+                toastContent.insert(.weakSignal)
+            }
+            self.toastContent = toastContent
+        }
     }
     
     private func updateDimVisibility(transition: ContainedViewLayoutTransition = .animated(duration: 0.3, curve: .easeInOut)) {
@@ -2138,41 +2177,45 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     }
     
     @objc func keyPressed() {
-        if self.keyPreviewNode == nil, let keyText = self.keyTextData?.1, let peer = self.peer {
-            self.avatarNode.update(audioBlobState: .disabled)
-            self.avatarNode.isHidden = true
-            
-            print(keyText)
-            
-            let keyPreviewNode = CallEmojiKeyPreviewNode(
-                accountContext: self.call.context,
-                animatedStickerFiles: self.keyAnimatedStickerFiles,
-                keyText: keyText,
-                titleText: "This call is end-to end encrypted", // TODO: Strings
-                infoText: self.presentationData.strings.Call_EmojiDescription(EnginePeer(peer).compactDisplayTitle).string.replacingOccurrences(of: "%%", with: "%"),
-                dismiss: { [weak self] in
-                    if let _ = self?.keyPreviewNode {
-                        self?.backPressed()
-                    }
-                }
-            )
-            
-            self.containerNode.addSubnode(keyPreviewNode)
-            self.keyPreviewNode = keyPreviewNode
-            
-            if let (validLayout, _) = self.validLayout {
-                keyPreviewNode.updateLayout(
-                    size: validLayout.size,
-                    topOffset: self.avatarNode.frame.minY - 80,
-                    transition: .immediate
-                )
-                
-                self.keyButtonNode.isHidden = true
-                keyPreviewNode.animateIn(from: self.keyButtonNode.frame, fromNode: self.keyButtonNode)
-            }
-            
-            self.updateDimVisibility()
-        }
+        // INFO: временно показываю тултип по нажатию
+        self.displayEmojiTooltip()
+        
+        // TODO: раскомментить
+//        if self.keyPreviewNode == nil, let keyText = self.keyTextData?.1, let peer = self.peer {
+//            self.avatarNode.update(audioBlobState: .disabled)
+//            self.avatarNode.isHidden = true
+//
+//            print(keyText)
+//
+//            let keyPreviewNode = CallEmojiKeyPreviewNode(
+//                accountContext: self.call.context,
+//                animatedStickerFiles: self.keyAnimatedStickerFiles,
+//                keyText: keyText,
+//                titleText: "This call is end-to end encrypted", // TODO: Strings
+//                infoText: self.presentationData.strings.Call_EmojiDescription(EnginePeer(peer).compactDisplayTitle).string.replacingOccurrences(of: "%%", with: "%"),
+//                dismiss: { [weak self] in
+//                    if let _ = self?.keyPreviewNode {
+//                        self?.backPressed()
+//                    }
+//                }
+//            )
+//
+//            self.containerNode.addSubnode(keyPreviewNode)
+//            self.keyPreviewNode = keyPreviewNode
+//
+//            if let (validLayout, _) = self.validLayout {
+//                keyPreviewNode.updateLayout(
+//                    size: validLayout.size,
+//                    topOffset: self.avatarNode.frame.minY - 80,
+//                    transition: .immediate
+//                )
+//
+//                self.keyButtonNode.isHidden = true
+//                keyPreviewNode.animateIn(from: self.keyButtonNode.frame, fromNode: self.keyButtonNode)
+//            }
+//
+//            self.updateDimVisibility()
+//        }
     }
     
     @objc func backPressed() {
