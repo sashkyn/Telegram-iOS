@@ -11,8 +11,6 @@ import TelegramAnimatedStickerNode
 import ShimmerEffect
 import StickerResources
 
-// TODO: сделать предзагрузку эмодзи
-
 // TODO: сделать динамический style black или light для effectView для видео и нет
 // TODO: сделать анимацию появления и убирания
 // TODO: сделать состояния кнопки ок
@@ -32,22 +30,22 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
     private var disposable = DisposableSet()
     
     private var animatedEmoji: Bool {
-        return true
-//        let count = animatedStickerFiles.count == keyTextNode.attributedText?.string.count
-//        print("call emoji preview: animated count = \(animatedStickerFiles.count)")
-//        return count
+        animatedStickerFiles.count == keyTextNode.attributedText?.string.count
     }
     
     private let dismiss: () -> Void
     
     init(
         accountContext: AccountContext,
+        animatedStickerFiles: [TelegramMediaFile],
         keyText: String,
         titleText: String,
         infoText: String,
         dismiss: @escaping () -> Void
     ) {
         self.accountContext = accountContext
+        
+        self.animatedStickerFiles = animatedStickerFiles
         
         self.keyTextNode = ASTextNode()
         self.keyTextNode.displaysAsynchronously = false
@@ -67,21 +65,6 @@ final class CallEmojiKeyPreviewNode: ASDisplayNode {
         
         self.animatedKeysStickerContainer = ASDisplayNode()
         self.animatedKeysStickerContainer.displaysAsynchronously = false
-        
-        var files: [TelegramMediaFile] = []
-//        keyText.forEach { emojiKey in
-//            if let file = accountContext.animatedEmojiStickers["\(emojiKey)"]?.first?.file {
-//                files.append(file)
-//            }
-//        }
-        
-        // INFO:
-        accountContext.animatedEmojiStickers.keys.shuffled().prefix(4).forEach { emojiKey in
-            if let file = accountContext.animatedEmojiStickers["\(emojiKey)"]?.first?.file {
-                files.append(file)
-            }
-        }
-        self.animatedStickerFiles = files
         
         super.init()
 

@@ -417,10 +417,72 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     private var ratingNode: CallRatingNode?
     
     private var lastTimestampValue: Double?
+    private var keyAnimatedStickerFiles: [TelegramMediaFile] = []
     
     private var debugNode: CallDebugNode?
     
-    private var keyTextData: (Data, String)?
+    private var keyTextData: (Data, String)? {
+        didSet {
+            guard let keyText = self.keyTextData?.1 else {
+                self.keyAnimatedStickerFiles = []
+                return
+            }
+            print("call sticker values real keys - \(keyText)")
+            
+            let context = self.call.context
+            
+            // INFO: очистка старых стикеров
+            self.keyAnimatedStickerFiles = []
+            
+            // INFO: код для релиза
+            let stickerFiles = keyText
+                .prefix(4)
+                .compactMap { emojiKey in
+                    let file = context.animatedEmojiStickers["\(emojiKey)"]?.first?.file
+                    if file != nil {
+                        print("call sticker values added real emoji - \(emojiKey)")
+                    }
+                    return file
+                }
+            
+            // INFO: Добавление рандомных эмодзи для теста
+//            let stickerFiles = context.animatedEmojiStickers
+//                .keys
+//                .shuffled()
+//                .prefix(4)
+//                .compactMap { emojiKey in
+//                    print("call sticker values added random emoji - \(emojiKey)")
+//                    return context.animatedEmojiStickers["\(emojiKey)"]?.first?.file
+//                }
+            
+            if stickerFiles.count < 4 {
+                // Не хватает анимирующихся стикеров, выходим отсюда
+                print("call sticker values not animated return ...")
+                return
+            }
+            
+            // INFO: загружаем стикеры
+            let stickerDownloadSignals = stickerFiles.map { file in
+                freeMediaFileResourceInteractiveFetched(
+                    account: context.account,
+                    userLocation: .other,
+                    fileReference: stickerPackFileReference(file),
+                    resource: file.resource
+                )
+            }
+            
+            self.stickerPredownloadDisposable.set(
+                combineLatest(stickerDownloadSignals).start(next: {
+                    print("call sticker values downloaded - \($0.count)")
+                }, error: { error in
+                    print("call sticker values downloaded error - \(error)")
+                }, completed: { [weak self] in
+                    print("call sticker values download completed")
+                    self?.keyAnimatedStickerFiles = stickerFiles
+                })
+            )
+        }
+    }
     
     // INFO: view c ключами эмодзи
     private let keyButtonNode: CallControllerKeyButton
@@ -481,6 +543,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
     private var orientationDidChangeObserver: NSObjectProtocol?
     
     private var audioLevelDisposable: Disposable? = nil
+    private var stickerPredownloadDisposable = MetaDisposable()
     
     private var currentRequestedAspect: CGFloat?
     
@@ -803,6 +866,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             NotificationCenter.default.removeObserver(orientationDidChangeObserver)
         }
         self.audioLevelDisposable?.dispose()
+        self.stickerPredownloadDisposable.dispose()
     }
     
     func displayCameraTooltip() {
@@ -1193,7 +1257,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                     let keyTextSize = self.keyButtonNode.measure(CGSize(width: 200.0, height: 200.0))
                     self.keyButtonNode.frame = CGRect(origin: self.keyButtonNode.frame.origin, size: keyTextSize)
                     
-                    self.keyButtonNode.animateIn()
+                    //self.keyButtonNode.animateIn()
                     
                     if let (layout, navigationBarHeight) = self.validLayout {
                         self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
@@ -2061,6 +2125,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
             
             let keyPreviewNode = CallEmojiKeyPreviewNode(
                 accountContext: self.call.context,
+                animatedStickerFiles: self.keyAnimatedStickerFiles,
                 keyText: keyText,
                 titleText: "This call is end-to end encrypted", // TODO: Strings
                 infoText: self.presentationData.strings.Call_EmojiDescription(EnginePeer(peer).compactDisplayTitle).string.replacingOccurrences(of: "%%", with: "%"),
