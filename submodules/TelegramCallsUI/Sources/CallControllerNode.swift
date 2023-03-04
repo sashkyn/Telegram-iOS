@@ -1193,7 +1193,7 @@ final class CallControllerNode: ViewControllerTracingNode, CallControllerNodePro
                 )
             } else {
                 titleStatusValue = self.presentationData.strings.Call_StatusEnded
-                statusValue = .text(string: "Call did't started")
+                statusValue = .text(string: "Call did't start")
             }
         }
                 
