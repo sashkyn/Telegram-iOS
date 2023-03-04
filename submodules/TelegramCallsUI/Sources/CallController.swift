@@ -364,8 +364,7 @@ public final class CallController: ViewController {
         
         self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
     }
-    
-    // TODO: разобраться с LegacyController-ом
+
     override public func dismiss(completion: (() -> Void)? = nil) {
         self.controllerNode.animateOut(completion: { [weak self] in
             self?.didPlayPresentationAnimation = false

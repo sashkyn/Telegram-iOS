@@ -431,7 +431,7 @@ private final class TooltipScreenNode: ViewControllerTracingNode {
                 node: self.staticImageNode,
                 frame: .init(
                     x: contentInset + 2,
-                    y: 5, // TODO: сделать норм
+                    y: 5,
                     width: animationSize.width,
                     height: animationSize.height
                 )

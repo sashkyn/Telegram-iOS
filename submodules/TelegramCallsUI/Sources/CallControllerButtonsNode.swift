@@ -323,7 +323,7 @@ final class CallControllerButtonsNode: ASDisplayNode {
             if videoState.hasVideo && !isScreencastActive {
                 topButtons.append(.switchCamera(isCameraActive && !isCameraInitializing))
             } else {
-                topButtons.append(.soundOutput(soundOutput)) // TODO: проверить зачем hasAudioRouteMenu
+                topButtons.append(.soundOutput(soundOutput))
             }
             
             topButtons.append(.enableCamera(isActive: isCameraActive || isScreencastActive, isEnabled: isCameraEnabled, isLoading: isCameraInitializing, isScreencast: isScreencastActive))

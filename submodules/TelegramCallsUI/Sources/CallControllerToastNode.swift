@@ -266,7 +266,6 @@ class CallControllerToastItemNode: ASDisplayNode {
     }
     
     func update(width: CGFloat, content: Content, transition: ContainedViewLayoutTransition) -> CGFloat {
-        print("call toast content - \(content.key)")
         let inset: CGFloat = 24.0
         let isNarrowScreen = width <= 320.0
         let font = isNarrowScreen ? smallLabelFont : labelFont
